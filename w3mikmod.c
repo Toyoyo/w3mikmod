@@ -126,7 +126,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
   MikMod_RegisterAllDrivers();
   MikMod_RegisterAllLoaders();
 
-  /* New default value (2) just... doest really work */
+  /* New default value (2) just... doesn't really work on my potato*/
   md_device=1;
   if(MikMod_Init("count=6") != 0) {
     MessageBox(NULL, "Could not initialize MikMod\r\nExiting", "W3MikMod - Error", MB_OK|MB_ICONERROR);
@@ -507,7 +507,7 @@ HBITMAP bitmap;
         snprintf(&AboutMsg, 1024,
           "W3Mikmod %s\r\n(c) 2021 Toyoyo\r\n\r\nLibMikmod %d.%d.%d\r\n(c) 2004 Raphael Assenat and others\r\n\r\n"
           "Driver info:\r\n%s\r\n\r\n"
-          "Driver settings:\r\n%s\r\n\r\n"
+          "Registered loaders:\r\n%s\r\n\r\n"
           "This program is free software,\r\ncovered by the GNU General Public License."
           , W3MIDMOKVERSION, (MikMod_GetVersion() >> 16) & 255, (MikMod_GetVersion() >>  8) & 255, (MikMod_GetVersion()) & 255,
           InfoDriver, InfoLoader);
