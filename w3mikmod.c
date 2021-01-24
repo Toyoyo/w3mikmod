@@ -189,8 +189,6 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
   TBADDBITMAP tbab;
   TBBUTTON tbb[14];
 
-HBITMAP bitmap;
-
   switch(msg)
   {
     case WM_CREATE:
