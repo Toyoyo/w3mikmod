@@ -25,3 +25,4 @@ END
 2 BITMAP "res/toolbar.bmp"
 3 ICON "res/samples.ico"
 4 ICON "res/instr.ico"
+5 ICON "res/vol.ico"
