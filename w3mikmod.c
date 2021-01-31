@@ -603,7 +603,7 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
       if(HIWORD(wParam) == BN_CLICKED && LOWORD(wParam) == 3101)
       {
         OPENFILENAMEA ofn_mod = {0};
-        char FileSelection[1024];
+        char FileSelection[4096];
         char SelFileName[PATH_MAX];
         char SelDirName[PATH_MAX];
         char *token;
@@ -899,7 +899,7 @@ void UpdateVol(BOOL UpdateChn) {
     int c = 0;
     int ChanVol = 0;
     HDC hdc;
-    VOICEINFO vi[MAXVOICES];
+    static VOICEINFO vi[MAXVOICES];
 
     for (t = 0; t < module->numchn; t++) {
       if (strlen(strchr(&VolMsg, '\0')) < 768)
