@@ -26,7 +26,7 @@
 #include <winuser.h>
 #include <mikmod.h>
 
-#define W3MIDMOKVERSION "0.1.1"
+#define W3MIDMOKVERSION "0.1.2"
 #define MOD_EXT "*.669;*.amf;*.dsm;*.far;*.gdm;*.it;*.imf;*.mod;*.med;*.mtm;*.okt;*.s3m;*.stm;*.stx;*.ult;*.umx;*.xm"
 #define NOMOD "-- No module loaded --"
 #define MAXVOICES 256
@@ -90,6 +90,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
   WNDCLASS wcVol;
   MSG messages;
   HWND hwnd;
+  HACCEL KbdAccelTable;
+  ACCEL KbdAccel[1];
+
   char CfgFont[1024];
   int CfgFontSize = 10;
   int i;
@@ -183,9 +186,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
   SetWindowLong(hwnd,0*sizeof(void*),(long)hBrushMain);
   ShowWindow(hwnd, 5);
 
-  while(GetMessage(&messages,NULL,0,0)) {
-    TranslateMessage(&messages);
-    DispatchMessage(&messages);
+  KbdAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(6));
+
+  while(GetMessage(&messages, NULL, 0, 0)) {
+      /* For keyboard control */
+      TranslateAcceleratorA(hwnd, KbdAccelTable, &messages);
+      /* Required for WS_TABSTOP to work*/
+      IsDialogMessage(hwnd, &messages);
+
+      TranslateMessage(&messages);
+      DispatchMessage(&messages);
   }
 
   cleanup:
@@ -312,15 +322,15 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
       SendMessage(hToolbar, TB_AUTOSIZE, 0, 0);
 
       /* Our controls */
-      hFileName = CreateWindowEx(0,"Static","-- FileName --", WS_CHILD|WS_VISIBLE, 0, 38, 331, 14, hWnd,(HMENU)3002,hIns,0);
-      hSongName = CreateWindowEx(0,"Static","-- SongName --", WS_CHILD|WS_VISIBLE, 0, 52, 331, 14, hWnd,(HMENU)3001,hIns,0);
-      hTrackerType = CreateWindowEx(0,"Static","-- Tracker Name --", WS_CHILD|WS_VISIBLE, 0, 66, 331, 14, hWnd,(HMENU)3002,hIns,0);
-      CreateWindowEx(0,"Static","", WS_CHILD|WS_VISIBLE|SS_WHITERECT, 309, 97, 22, 100, hWnd,(HMENU)3004,hIns,0);
-      hStatus = CreateWindowEx(0,"Static","-- Status --", WS_CHILD|WS_VISIBLE, 0, 80, 331, 16, hWnd,(HMENU)3000,hIns,0);
-      hPList = CreateWindowEx(0,"Listbox","",WS_CHILD|WS_VISIBLE|LBS_HASSTRINGS|LBS_EXTENDEDSEL|LBS_NOINTEGRALHEIGHT|WS_VSCROLL,0,98,307,62,hWnd,(HMENU)3100,hIns,0);
-      hPListAdd = CreateWindowEx(0,"Button","+",WS_TABSTOP|WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON|BS_VCENTER,310,98,20,20,hWnd,(HMENU)3101,hIns,0);
-      hPListDel = CreateWindowEx(0,"Button","-",WS_TABSTOP|WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON|BS_VCENTER,310,119,20,20,hWnd,(HMENU)3102,hIns,0);
-      hPListLoad = CreateWindowEx(0,"Button",">",WS_TABSTOP|WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON|BS_VCENTER,310,140,20,20,hWnd,(HMENU)3103,hIns,0);
+      hFileName = CreateWindowEx(0,"Static","-- FileName --",WS_CHILD|WS_VISIBLE,0,38,331,14,hWnd,(HMENU)3002,hIns,0);
+      hSongName = CreateWindowEx(0,"Static","-- SongName --",WS_CHILD|WS_VISIBLE,0,52,331,14,hWnd,(HMENU)3001,hIns,0);
+      hTrackerType = CreateWindowEx(0,"Static","-- Tracker Name --",WS_CHILD|WS_VISIBLE,0,66,331,14,hWnd,(HMENU)3002,hIns,0);
+      CreateWindowEx(0,"Static","",WS_CHILD|WS_VISIBLE|SS_WHITERECT,309,97,22,100,hWnd,(HMENU)3004,hIns,0);
+      hStatus = CreateWindowEx(0,"Static","-- Status --", WS_CHILD|WS_VISIBLE,0,80,331,16,hWnd,(HMENU)3000,hIns,0);
+      hPList = CreateWindowEx(0,"Listbox","",WS_TABSTOP|WS_CHILD|WS_VISIBLE|LBS_HASSTRINGS|LBS_EXTENDEDSEL|LBS_NOINTEGRALHEIGHT|WS_VSCROLL,0,98,307,62,hWnd,(HMENU)3100,hIns,0);
+      hPListAdd = CreateWindowEx(0,"Button","+",WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON|BS_VCENTER,310,98,20,20,hWnd,(HMENU)3101,hIns,0);
+      hPListDel = CreateWindowEx(0,"Button","-",WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON|BS_VCENTER,310,119,20,20,hWnd,(HMENU)3102,hIns,0);
+      hPListLoad = CreateWindowEx(0,"Button",">",WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON|BS_VCENTER,310,140,20,20,hWnd,(HMENU )3103,hIns,0);
 
       SendMessage(hStatus, WM_SETFONT, (WPARAM)s_hFont, (LPARAM)MAKELONG(TRUE, 0));
       SendMessage(hSongName, WM_SETFONT, (WPARAM)s_hFont, (LPARAM)MAKELONG(TRUE, 0));
@@ -410,7 +420,7 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
     case WM_COMMAND:
     {
       /* Load a module */
-      if(HIWORD(wParam) == BN_CLICKED && LOWORD(wParam) == 2000)
+      if(LOWORD(wParam) == 2000)
       {
         OPENFILENAMEA ofn_mod = {0};
         char FileName[PATH_MAX] = {0};
@@ -435,7 +445,7 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
       }
 
       /* Rewind */
-      if(HIWORD(wParam) == BN_CLICKED && LOWORD(wParam) == 2001)
+      if(LOWORD(wParam) == 2001)
       {
         if(module) {
           Player_SetPosition(0);
@@ -444,7 +454,7 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
       }
 
       /* Play */
-      if(HIWORD(wParam) == BN_CLICKED && LOWORD(wParam) == 2002)
+      if(LOWORD(wParam) == 2002)
       {
         SendMessage(hToolbar, TB_CHECKBUTTON, (WPARAM)2003, (LPARAM)0);
         if(!isPlaying) {
@@ -464,7 +474,7 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
       }
 
       /* Pause */
-      if(HIWORD(wParam) == BN_CLICKED && LOWORD(wParam) == 2003)
+      if(LOWORD(wParam) == 2003)
       {
         /* We don't have anything to play */
         if(!module || (isStarted == 0 && isLoaded == 0)) break;
@@ -495,25 +505,25 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
         }
       }
       /* Samples */
-      if(HIWORD(wParam) == BN_CLICKED && LOWORD(wParam) == 2004)
+      if(LOWORD(wParam) == 2004)
       {
         SwitchSamplesBTN();
       }
 
       /* instruments */
-      if(HIWORD(wParam) == BN_CLICKED && LOWORD(wParam) == 2005)
+      if(LOWORD(wParam) == 2005)
       {
         SwitchInstrBTN();
       }
 
       /* volume bars */
-      if(HIWORD(wParam) == BN_CLICKED && LOWORD(wParam) == 2009)
+      if(LOWORD(wParam) == 2009)
       {
         SwitchVolBTN();
       }
 
       /* Playlist prev */
-      if(HIWORD(wParam) == BN_CLICKED && LOWORD(wParam) == 2006)
+      if(LOWORD(wParam) == 2006)
       {
         int PlayListCount=SendMessage(hPList, LB_GETCOUNT, 0, 0);
 
@@ -523,7 +533,7 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
       }
 
       /* Playlist next */
-      if(HIWORD(wParam) == BN_CLICKED && LOWORD(wParam) == 2007)
+      if(LOWORD(wParam) == 2007)
       {
         int PlayListCount=SendMessage(hPList, LB_GETCOUNT, 0, 0);
         if(PlayListCount > 0) {
@@ -532,31 +542,41 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
       }
 
       /* About */
-      if(HIWORD(wParam) == BN_CLICKED && LOWORD(wParam) == 2008)
+      if(LOWORD(wParam) == 2008)
       {
         char AboutMsg[1024];
         char *InfoDriver;
-        char *InfoLoader;
         InfoDriver = MikMod_InfoDriver();
-        InfoLoader = MikMod_InfoLoader();
 
         snprintf(&AboutMsg, 1024,
           "W3Mikmod %s\r\n(c) 2021 Toyoyo\r\n\r\nLibMikmod %d.%d.%d\r\n(c) 2004 Raphael Assenat and others\r\n\r\n"
           "Driver info:\r\n%s\r\n\r\n"
-          "Registered loaders:\r\n%s\r\n\r\n"
-          "This program is free software,\r\ncovered by the GNU General Public License."
+          "Key usage:\r\n"
+          "H: This help\r\n"
+          "O: Open module\r\n"
+          "G: Play\r\n"
+          "S: Toggle samples window\r\n"
+          "I: Toggle Intruments window\r\n"
+          "V: Toggle volume bars window\r\n"
+          "+: Add module to playlist\r\n"
+          "-: Remove selected module(s) from playlist\r\n"
+          "L: Load selected module\r\n"
+          "N: Next\r\n"
+          "P: Previous\r\n"
+          "R: Rewind\r\n"
+          "Space: Pause\r\n\r\n"
+          "This program is free software,\r\ncovered by the GNU General Public License.\r\n"
           , W3MIDMOKVERSION, (MikMod_GetVersion() >> 16) & 255, (MikMod_GetVersion() >>  8) & 255, (MikMod_GetVersion()) & 255,
-          InfoDriver, InfoLoader);
+          InfoDriver);
 
           MikMod_free(InfoDriver);
-          MikMod_free(InfoLoader);
 
           MessageBox(NULL, AboutMsg, "W3MikMod - About", MB_OK|MB_ICONINFORMATION|MB_TASKMODAL);
+          SetForegroundWindow(hWnd);
       }
 
-
       /* Playlist Load */
-      if(HIWORD(wParam) == BN_CLICKED && LOWORD(wParam) == 3103)
+      if(LOWORD(wParam) == 3103)
       {
         int SelCount=0;
         int SelInBuffer;
@@ -579,7 +599,7 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
       }
 
       /* Playlist remove */
-      if(HIWORD(wParam) == BN_CLICKED && LOWORD(wParam) == 3102)
+      if(LOWORD(wParam) == 3102)
       {
         int SelCount=0;
         int SelInBuffer;
@@ -600,7 +620,7 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
       }
 
       /* Playlist add */
-      if(HIWORD(wParam) == BN_CLICKED && LOWORD(wParam) == 3101)
+      if(LOWORD(wParam) == 3101)
       {
         OPENFILENAMEA ofn_mod = {0};
         char FileSelection[4096];
