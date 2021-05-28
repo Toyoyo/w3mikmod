@@ -188,13 +188,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
   KbdAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(6));
 
   while(GetMessage(&messages, NULL, 0, 0)) {
-      /* For keyboard control */
-      TranslateAcceleratorA(hwnd, KbdAccelTable, &messages);
-      /* Required for WS_TABSTOP to work*/
-      IsDialogMessage(hwnd, &messages);
-
+    /* For keyboard control */
+    TranslateAcceleratorA(hwnd, KbdAccelTable, &messages);
+    /* Required for WS_TABSTOP to work*/
+    if(!IsDialogMessage(hwnd, &messages)) {
       TranslateMessage(&messages);
       DispatchMessage(&messages);
+    }
   }
 
   cleanup:
