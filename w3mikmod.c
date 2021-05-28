@@ -91,7 +91,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
   MSG messages;
   HWND hwnd;
   HACCEL KbdAccelTable;
-  ACCEL KbdAccel[1];
 
   char CfgFont[1024];
   int CfgFontSize = 10;
