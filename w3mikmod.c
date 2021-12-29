@@ -26,7 +26,7 @@
 #include <winuser.h>
 #include <mikmod.h>
 
-#define W3MIDMOKVERSION "0.1.2"
+#define W3MIDMOKVERSION "0.1.3"
 #define MOD_EXT "*.669;*.amf;*.dsm;*.far;*.gdm;*.it;*.imf;*.mod;*.med;*.mtm;*.okt;*.s3m;*.stm;*.stx;*.ult;*.umx;*.xm"
 #define NOMOD "-- No module loaded --"
 #define MAXVOICES 256
@@ -229,6 +229,7 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
   TEXTMETRIC tm;
   TBADDBITMAP tbab;
   TBBUTTON tbb[11];
+  HDROP hDropInfo = NULL;
 
   switch(msg)
   {
@@ -330,6 +331,7 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
       hPListAdd = CreateWindowEx(0,"Button","+",WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON|BS_VCENTER,310,98,20,20,hWnd,(HMENU)3101,hIns,0);
       hPListDel = CreateWindowEx(0,"Button","-",WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON|BS_VCENTER,310,119,20,20,hWnd,(HMENU)3102,hIns,0);
       hPListLoad = CreateWindowEx(0,"Button",">",WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON|BS_VCENTER,310,140,20,20,hWnd,(HMENU )3103,hIns,0);
+      DragAcceptFiles(hWnd, TRUE);
 
       SendMessage(hStatus, WM_SETFONT, (WPARAM)s_hFont, (LPARAM)MAKELONG(TRUE, 0));
       SendMessage(hSongName, WM_SETFONT, (WPARAM)s_hFont, (LPARAM)MAKELONG(TRUE, 0));
@@ -414,6 +416,22 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
       DestroyWindow(hSamplesWin);
       DestroyWindow(hInstrWin);
       PostQuitMessage(0);
+      return 0;
+    }
+    case WM_DROPFILES:
+    {
+      char FileName[PATH_MAX] = {0};
+      UINT NumFiles = 0;
+      int i;
+      hDropInfo = (HDROP)wParam;
+      NumFiles = DragQueryFile (hDropInfo, 0xFFFFFFFF, NULL, PATH_MAX);
+
+      if(NumFiles > 0) {
+        for (i=0; i<NumFiles; i++) {
+          (LPARAM)DragQueryFile (hDropInfo, i, FileName, PATH_MAX);
+          SendMessage(hPList, LB_ADDSTRING, 0, (LPARAM)FileName);
+        }
+      }
       return 0;
     }
     case WM_COMMAND:
@@ -564,7 +582,7 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
           "P: Previous\r\n"
           "R: Rewind\r\n"
           "Space: Pause\r\n\r\n"
-          "This program is free software,\r\ncovered by the GNU General Public License.\r\n"
+          "This program is free software,\r\ncovered by the GNU GPL.\r\n"
           , W3MIDMOKVERSION, (MikMod_GetVersion() >> 16) & 255, (MikMod_GetVersion() >>  8) & 255, (MikMod_GetVersion()) & 255,
           InfoDriver);
 
