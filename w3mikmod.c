@@ -26,7 +26,7 @@
 #include <winuser.h>
 #include <mikmod.h>
 
-#define W3MIDMOKVERSION "0.1.3"
+#define W3MIDMOKVERSION "0.1.4"
 #define MOD_EXT "*.669;*.amf;*.dsm;*.far;*.gdm;*.it;*.imf;*.mod;*.med;*.mtm;*.okt;*.s3m;*.stm;*.stx;*.ult;*.umx;*.xm"
 #define NOMOD "-- No module loaded --"
 #define MAXVOICES 256
@@ -415,6 +415,7 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
       KillTimer(hWnd, 1001);
       DestroyWindow(hSamplesWin);
       DestroyWindow(hInstrWin);
+      DestroyWindow(hVolWin);
       PostQuitMessage(0);
       return 0;
     }
