@@ -26,7 +26,7 @@
 #include <winuser.h>
 #include <mikmod.h>
 
-#define W3MIDMOKVERSION "0.1.4"
+#define W3MIDMOKVERSION "0.1.5"
 #define MOD_EXT "*.669;*.amf;*.dsm;*.far;*.gdm;*.it;*.imf;*.mod;*.med;*.mtm;*.okt;*.s3m;*.stm;*.stx;*.ult;*.umx;*.xm"
 #define NOMOD "-- No module loaded --"
 #define MAXVOICES 256
@@ -58,6 +58,7 @@ BOOL isStarted = 0;
 BOOL isLoaded = 0;
 BOOL CfgEmpty = 0;
 BOOL CfgAveWidth = 0;
+BOOL CfgMixFreq = 44100;
 HWND hStatus;
 HWND hSongName;
 HWND hTrackerType;
@@ -149,7 +150,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
   wcVol.hIcon = (HICON)LoadImage(GetModuleHandle(NULL), MAKEINTRESOURCE(5), IMAGE_ICON, 32, 32, 0);
   RegisterClass(&wcVol);
 
-  md_mode |= DMODE_SOFT_MUSIC | DMODE_INTERP | DMODE_SURROUND | DMODE_HQMIXER | DMODE_16BITS | DMODE_SOFT_SNDFX;
+  /* w3mikmod.ini parsing */
+  GetPrivateProfileString("W3MikMod", "font", "Courier", CfgFont, 1023, ".\\w3mikmod.ini");
+  CfgFontSize = GetPrivateProfileInt("W3MikMod", "size", 10, ".\\w3mikmod.ini");
+  CfgEmpty = GetPrivateProfileInt("W3MikMod", "empty", 1, ".\\w3mikmod.ini");
+  CfgAveWidth = GetPrivateProfileInt("W3MikMod", "avewidth", 0, ".\\w3mikmod.ini");
+  CfgMixFreq = GetPrivateProfileInt("W3MikMod", "mixfreq", 44100, ".\\w3mikmod.ini");
+  s_hFont = CreateFont(CfgFontSize, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, CfgFont);
+
+  md_mixfreq = CfgMixFreq;
+  md_mode |= DMODE_INTERP | DMODE_SURROUND | DMODE_HQMIXER | DMODE_16BITS;
 
   MikMod_RegisterAllDrivers();
   MikMod_RegisterAllLoaders();
@@ -160,13 +170,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     MessageBox(NULL, "Could not initialize MikMod\r\nExiting", "W3MikMod - Error", MB_OK|MB_ICONERROR);
     goto cleanup;
   }
-
-  /* w3mikmod.ini parsing */
-  GetPrivateProfileString("W3MikMod", "font", "Courier", CfgFont, 1023, ".\\w3mikmod.ini");
-  CfgFontSize = GetPrivateProfileInt("W3MikMod", "size", 10, ".\\w3mikmod.ini");
-  CfgEmpty = GetPrivateProfileInt("W3MikMod", "empty", 1, ".\\w3mikmod.ini");
-  CfgAveWidth = GetPrivateProfileInt("W3MikMod", "avewidth", 0, ".\\w3mikmod.ini");
-  s_hFont = CreateFont(CfgFontSize, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, CfgFont);
 
   hwnd = CreateWindowEx(0, "w3mikmod_main", "W3MikMod - "W3MIDMOKVERSION, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
            CW_USEDEFAULT, CW_USEDEFAULT, 320, 100,
@@ -568,7 +571,8 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
 
         snprintf(&AboutMsg, 1024,
           "W3Mikmod %s\r\n(c) 2021 Toyoyo\r\n\r\nLibMikmod %d.%d.%d\r\n(c) 2004 Raphael Assenat and others\r\n\r\n"
-          "Driver info:\r\n%s\r\n\r\n"
+          "Driver info:\r\n%s\r\n"
+          "Mix Frequency: %d\r\n\r\n"
           "Key usage:\r\n"
           "H: This help\r\n"
           "O: Open module\r\n"
@@ -585,7 +589,7 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
           "Space: Pause\r\n\r\n"
           "This program is free software,\r\ncovered by the GNU GPL.\r\n"
           , W3MIDMOKVERSION, (MikMod_GetVersion() >> 16) & 255, (MikMod_GetVersion() >>  8) & 255, (MikMod_GetVersion()) & 255,
-          InfoDriver);
+          InfoDriver, md_mixfreq);
 
           MikMod_free(InfoDriver);
 
