@@ -39,7 +39,7 @@ extern "C" {
  *
  * ========== NOTE TO WINDOWS DEVELOPERS:
  * If you are compiling for Windows and will link to the static library
- * (libmikmod.a with MinGW, or mikmod_static.lib with MSVC or LCC, etc),
+ * (libmikmod.a with MinGW, or mikmod_static.lib with MSVC, Watcom, ..),
  * you must define MIKMOD_STATIC in your project.  Otherwise, dllimport
  * will be assumed.
  */
@@ -74,7 +74,7 @@ extern "C" {
 
 #define LIBMIKMOD_VERSION_MAJOR 3L
 #define LIBMIKMOD_VERSION_MINOR 3L
-#define LIBMIKMOD_REVISION     11L
+#define LIBMIKMOD_REVISION     12L
 
 #define LIBMIKMOD_VERSION \
     ((LIBMIKMOD_VERSION_MAJOR<<16)| \
@@ -134,10 +134,8 @@ typedef unsigned char      UBYTE;
 #endif
 
 /* 2 bytes, signed and unsigned: */
-#if !(defined __LCC__ && defined _WIN32)
 typedef signed short int   SWORD;
-#endif
-#if !((defined __LCC__ && defined _WIN32) || defined(_MIKMOD_AMIGA))
+#if !defined(_MIKMOD_AMIGA)
 typedef unsigned short int UWORD;
 #endif
 
@@ -374,8 +372,9 @@ typedef struct MWRITER {
 #define SF_BIG_ENDIAN   0x0008
 #define SF_DELTA        0x0010
 #define SF_ITPACKED     0x0020
+#define SF_ADPCM4       0x0040
 
-#define SF_FORMATMASK   0x003F
+#define SF_FORMATMASK   0x007F
 
 /* General Playback flags */
 
@@ -549,6 +548,7 @@ struct MP_VOICE;
 #define UF_FT2QUIRKS    0x0200 /* emulate some FT2 replay quirks */
 #define UF_PANNING      0x0400 /* module uses panning effects or have
                                   non-tracker default initial panning */
+#define UF_FARTEMPO     0x0800 /* Module uses Farandole tempo calculations */
 
 typedef struct MODULE {
  /* general module information */

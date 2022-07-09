@@ -41,7 +41,6 @@
 #ifdef DRV_WIN
 
 #include <windows.h>
-#include <stdio.h>
 
 #if defined(_MSC_VER)
 #pragma comment(lib,"winmm.lib")

@@ -2,10 +2,10 @@ dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.63])
 
-AC_INIT([libmikmod],[3.3.11])
+AC_INIT([libmikmod],[3.3.12])
 LIBMIKMOD_MAJOR_VERSION=3
 LIBMIKMOD_MINOR_VERSION=3
-LIBMIKMOD_MICRO_VERSION=11
+LIBMIKMOD_MICRO_VERSION=12
 LIBMIKMOD_VERSION=$LIBMIKMOD_MAJOR_VERSION.$LIBMIKMOD_MINOR_VERSION.$LIBMIKMOD_MICRO_VERSION
 
 AC_CONFIG_AUX_DIR([autotools])
@@ -517,6 +517,8 @@ AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
 LT_INIT([win32-dll])
+dnl for sdl.m4 and sdl2.m4:
+PKG_PROG_PKG_CONFIG
 
 # =============================================================
 # Check for typedefs, structures, and compiler characteristics.
@@ -552,9 +554,6 @@ AC_CHECK_HEADERS([fcntl.h limits.h malloc.h memory.h sys/ioctl.h unistd.h])
 
 AC_CHECK_FUNCS([posix_memalign setenv snprintf srandom])
 AC_REPLACE_FUNCS([memcmp strstr])
-AC_CHECK_LIB([m],[floor],LIBRARY_LIB="-lm $LIBRARY_LIB")
-AC_EGREP_HEADER([srandom],[math.h],AC_DEFINE([SRANDOM_IN_MATH_H], 1,
-					 [Define if your system defines random(3) and srandom(3) in math.h instead of stdlib.h]))
 
 # ====================
 # Check for libraries.
@@ -1211,6 +1210,17 @@ fi
 # If compiling with gcc, use adequate optimization flags
 if test $ac_cv_c_compiler_gnu = yes
 then
+	CFLAGS="$CFLAGS -Wall"
+	if test $libmikmod_debug = yes
+	then
+		CFLAGS="$CFLAGS -Werror"
+	fi
+	CFLAGS="$CFLAGS -ffast-math"
+	if test $libmikmod_darwin = yes
+	then
+		CFLAGS="$CFLAGS -fno-common"
+	fi
+
 	# On at least x86 platforms, gcc 2.7.2.1 and earlier won't work if -O3 (or
 	# -finline-functions) are used. Versions 2.7.2.3, 2.8.x and egcs are ok
 	# (didn't test 2.7.2.2).
@@ -1219,48 +1229,12 @@ then
 	AC_CACHE_CHECK([if inlining functions is safe],[libmikmod_cv_gcc_inline_safe],
 	 [AC_TRY_COMPILE(,[
 #if !(defined __GNUC__ && (__GNUC__ > 2 || __GNUC__ == 2 && __GNUC_MINOR__ > 7))
-#error inlining functions is not safe
+#error inlining functions not safe
 #endif
-],
-	[libmikmod_cv_gcc_inline_safe=yes],
-	[libmikmod_cv_gcc_inline_safe=no])])
+], [libmikmod_cv_gcc_inline_safe=yes], [libmikmod_cv_gcc_inline_safe=no])])
 	if test $libmikmod_cv_gcc_inline_safe = no
 	then
 		CFLAGS="$CFLAGS -fno-strength-reduce"
-	fi
-	CFLAGS="$CFLAGS -ffast-math"
-	if test $libmikmod_darwin = yes
-	then
-		CFLAGS="$CFLAGS -fno-common"
-	fi
-	if test $libmikmod_debug = yes
-	then
-		CFLAGS="$CFLAGS -Wall -Werror"
-	else
-		CFLAGS="$CFLAGS -Wall"
-	fi
-
-	# pgcc 2.95.2 appears not to be able to compile libmikmod, although regular
-	# gcc works fine. Issue a warning if the compiler is pgcc, until a reliable
-	# way to detect flawed version (or, better, a reliable workaround) is
-	# found.
-dnl do not cache this test - better rechecking every time
-	AC_MSG_CHECKING([if compiler is pgcc])
-	if ($CC -v 2>&1 | grep ^pgcc > /dev/null) 2>/dev/null
-	then
-		libmikmod_gcc_is_pgcc=yes
-	else
-		libmikmod_gcc_is_pgcc=no
-	fi
-	AC_MSG_RESULT([$libmikmod_gcc_is_pgcc])
-	if test $libmikmod_gcc_is_pgcc = yes
-	then
-		echo "
-*** Version 2.95.2 of this compiler, and perhaps others, are unable to
-*** compile libmikmod. If compilation fails for playercode/virtch.c
-*** around line 650, with the error ``internal error--insn does not
-*** satisfy its constraints'', then you'll have to use another compiler.
-" >&2
 	fi
 fi
 
@@ -1346,8 +1320,11 @@ ac_save_CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS -fvisibility=hidden -Werror"
 AC_CACHE_CHECK([if compiler supports visibility attributes],[libmikmod_cv_gcc_visibility],
 	AC_LANG_PUSH([C])
-	AC_TRY_COMPILE([void foo(void);
-__attribute__((visibility("default"))) void foo(void) {}],
+	AC_TRY_COMPILE([
+__attribute__((visibility("default"))) int foo(void);
+__attribute__((visibility("hidden")))  int bar(void);
+int foo(void) { return 0; }
+int bar(void) { return 1; }],
 		[],
 		[libmikmod_cv_gcc_visibility=yes],
 		[libmikmod_cv_gcc_visibility=no])

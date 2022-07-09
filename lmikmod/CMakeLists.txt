@@ -24,12 +24,12 @@
 # (This copyright notice applies only to this file)
 
 PROJECT(libmikmod C)
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8.12)
 LIST(APPEND CMAKE_MODULE_PATH "${libmikmod_SOURCE_DIR}/cmake")
 
 SET(LIBMIKMOD_MAJOR_VERSION 3)
 SET(LIBMIKMOD_MINOR_VERSION 3)
-SET(LIBMIKMOD_MICRO_VERSION 11)
+SET(LIBMIKMOD_MICRO_VERSION 12)
 
 SET(VERSION "${LIBMIKMOD_MAJOR_VERSION}.${LIBMIKMOD_MINOR_VERSION}.${LIBMIKMOD_MICRO_VERSION}")
 SET(LIBMIKMOD_VERSION "${LIBMIKMOD_MAJOR_VERSION}.${LIBMIKMOD_MINOR_VERSION}.${LIBMIKMOD_MICRO_VERSION}")
@@ -167,7 +167,12 @@ SET (DISABLE_HQMIXER 0 CACHE BOOL "Exclude support for high quality mixer")
 
 SET (ENABLE_SIMD 0 CACHE BOOL "Use SIMD (AltiVec or SSE2) optimizations (UNSTABLE!!!)")
 SET (ENABLE_RPATH 1 CACHE BOOL "Whether to use an rpath when linking" )
+SET (ENABLE_SHARED 1 CACHE BOOL "Whether to build the shared library" )
 SET (ENABLE_STATIC 1 CACHE BOOL "Whether to build the static library" )
+
+IF (NOT ENABLE_STATIC AND NOT ENABLE_SHARED)
+    message(FATAL_ERROR "Both static and shared builds got disabled. You must enable at least one of them.")
+ENDIF()
 
 ### This is to set the RPATH correctly, so when installed
 ### under a prefix the executables will find the libraries.
@@ -214,7 +219,7 @@ IF (CMAKE_COMPILER_IS_GNUCC OR (CMAKE_C_COMPILER_ID MATCHES "Clang"))
 ENDIF()
 
 SET(COMPILER_FLAGS_TO_CHECK "-Werror=implicit-function-declaration")
-#LIST(APPEND COMPILER_FLAGS_TO_CHECK "-ffast-math")
+LIST(APPEND COMPILER_FLAGS_TO_CHECK "-ffast-math")
 
 IF (APPLE)
     LIST(APPEND COMPILER_FLAGS_TO_CHECK "-fno-common")
@@ -262,15 +267,15 @@ CHECK_C_SOURCE_COMPILES("static __inline int static_foo() {return 0;}
 # check for symbol visibility attributes
 IF(NOT WIN32 AND NOT CYGWIN)
     SET(OLD_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS}")
-    SET(CMAKE_REQUIRED_FLAGS "${OLD_REQUIRED_FLAGS} -Werror")
-    CHECK_C_SOURCE_COMPILES("int foo(void) __attribute__((visibility(\"default\")));
-                             int main(void) {return 0;}" HAVE_VISIBILITY_DEFAULT)
-    IF(HAVE_VISIBILITY_DEFAULT)
-        CHECK_C_COMPILER_FLAG(-fvisibility=hidden HAVE_VISIBILITY_HIDDEN)
-        IF(HAVE_VISIBILITY_HIDDEN)
-            ADD_DEFINITIONS(-fvisibility=hidden)
-            ADD_DEFINITIONS("-DSYM_VISIBILITY")
-        ENDIF()
+    SET(CMAKE_REQUIRED_FLAGS "${OLD_REQUIRED_FLAGS} -Werror -fvisibility=hidden")
+    CHECK_C_SOURCE_COMPILES("__attribute__((visibility(\"default\"))) int foo(void);
+                             __attribute__((visibility(\"hidden\")))  int bar(void);
+                             int foo (void) { return 0; }
+                             int bar (void) { return 1; }
+                             int main(void) { return 0; }" HAVE_VISIBILITY)
+    IF(HAVE_VISIBILITY)
+        ADD_DEFINITIONS(-fvisibility=hidden)
+        ADD_DEFINITIONS("-DSYM_VISIBILITY")
     ENDIF()
     SET(CMAKE_REQUIRED_FLAGS "${OLD_REQUIRED_FLAGS}")
 ENDIF()
@@ -301,7 +306,6 @@ CHECK_MULTI_FUNCTIONS_EXISTS(
 )
 
 CHECK_SYMBOL_EXISTS(RTLD_GLOBAL dlfcn.h HAVE_RTLD_GLOBAL)
-CHECK_SYMBOL_EXISTS(srandom math.h SRANDOM_IN_MATH_H)
 
 ADD_DEFINITIONS("-DHAVE_CONFIG_H")
 # always define MIKMOD_BUILD when building libmikmod
@@ -391,12 +395,23 @@ REPLACE_FUNCTIONS_FROMDIR(MIKMOD_LIB_MODULES
 
 SET (LIBMIKMOD_LIBS)
 
-ADD_LIBRARY (mikmod
-    SHARED
-    ${MIKMOD_LIB_MODULES}
+IF (ENABLE_SHARED)
+    ADD_LIBRARY (mikmod
+        SHARED
+        ${MIKMOD_LIB_MODULES}
     )
+    LIST (APPEND LIBMIKMOD_LIBS "mikmod")
 
-LIST (APPEND LIBMIKMOD_LIBS "mikmod")
+    SET_TARGET_PROPERTIES(mikmod
+        PROPERTIES VERSION 3.3.0 SOVERSION 3
+    )
+    IF(WIN32)
+        SET_TARGET_PROPERTIES(mikmod
+            PROPERTIES DEFINE_SYMBOL DLL_EXPORT
+        )
+    ENDIF(WIN32)
+ENDIF()
+
 IF (ENABLE_STATIC)
     ADD_LIBRARY (mikmod-static
         STATIC
@@ -413,15 +428,6 @@ IF (ENABLE_STATIC)
         PROPERTIES CLEAN_DIRECT_OUTPUT 1
     )
 ENDIF (ENABLE_STATIC)
-
-SET_TARGET_PROPERTIES(mikmod
-    PROPERTIES VERSION 3.3.0 SOVERSION 3
-)
-IF(WIN32)
-    SET_TARGET_PROPERTIES(mikmod
-        PROPERTIES DEFINE_SYMBOL DLL_EXPORT
-    )
-ENDIF(WIN32)
 
 IF(DISABLE_HQMIXER)
   SET(NO_HQMIXER 1)
@@ -834,13 +840,6 @@ IF (ENABLE_DL)
     LIST (APPEND EXTRA_LIBS ${CMAKE_DL_LIBS})
   ENDIF()
 ENDIF(ENABLE_DL)
-
-IF(UNIX AND NOT APPLE)
-    FIND_LIBRARY(MATH_LIB m)
-    IF(MATH_LIB)
-        LIST(APPEND EXTRA_LIBS ${MATH_LIB})
-    ENDIF()
-ENDIF()
 
 CONFIGURE_FILE("${CMAKE_SOURCE_DIR}/config.h.cmake" "${CMAKE_BINARY_DIR}/config.h")
 

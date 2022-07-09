@@ -4,6 +4,12 @@ __        _______ __  __ _ _    __  __           _
   \ V  V /  ___) | |  | | |   <| |  | | (_) | (_| |
    \_/\_/  |____/|_|  |_|_|_|\_\_|  |_|\___/ \__,_|
 
+0.1.6 - ***
+  Sync libmikmod with git master
+  Add md_mode configuration options
+  Remove "w3mikmod -" in window titles
+  Shrink samples/instruments/volume windows initial size
+
 0.1.5 - Mon 18 Apr 2022 02:46:36 PM CEST
   Add md_mixfreq configuration option
 

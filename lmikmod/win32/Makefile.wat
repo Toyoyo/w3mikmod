@@ -43,10 +43,12 @@ CPPFLAGS+=-DDRV_WIN
 #CPPFLAGS+= -DNO_HQMIXER
 
 # for WinMM and Direct Sound output drivers
-LIBS = winmm.lib dsound.lib dxguid.lib
+LIBS = winmm.lib
 
 #CFLAGS = -bt=nt -bm -fp5 -fpi87 -mf -oeatxh -w4 -ei -zp8 -zq
 CFLAGS = -q -bt=nt -oeatxh
+# newer OpenWatcom versions enable W303 by default.
+CFLAGS+= -wcd=303
 # -5s  :  Pentium stack calling conventions.
 # -5r  :  Pentium register calling conventions.
 #CFLAGS+= -5s
@@ -85,7 +87,7 @@ OBJ=drv_win.obj drv_ds.obj &
 all: $(BLD_TARGET)
 
 # rely on symbol name, not ordinal: -irn switch of wlib is default, but -inn is not.
-$(DLLNAME): $(OBJ) 
+$(DLLNAME): $(OBJ)
 	wlink NAM $@ OP q SYSTEM nt_dll INITINSTANCE TERMINSTANCE LIBR {$(LIBS)} FIL {$(OBJ)} OPTION IMPF=$(EXPNAME)
 	wlib -q -b -n -c -pa -s -t -zld -ii -io -inn $(LIBNAME) +$(DLLNAME)
 

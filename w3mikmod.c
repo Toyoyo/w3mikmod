@@ -1,5 +1,5 @@
 /* W3MikMod
-     (c) 2021 Toyoyo
+     (c) 2021, 2022 Toyoyo
 
      This program is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@
 #include <winuser.h>
 #include <mikmod.h>
 
-#define W3MIDMOKVERSION "0.1.5"
+#define W3MIDMOKVERSION "0.1.6"
 #define MOD_EXT "*.669;*.amf;*.dsm;*.far;*.gdm;*.it;*.imf;*.mod;*.med;*.mtm;*.okt;*.s3m;*.stm;*.stx;*.ult;*.umx;*.xm"
 #define NOMOD "-- No module loaded --"
 #define MAXVOICES 256
@@ -56,9 +56,6 @@ MODULE *module;
 BOOL isPlaying = 0;
 BOOL isStarted = 0;
 BOOL isLoaded = 0;
-BOOL CfgEmpty = 0;
-BOOL CfgAveWidth = 0;
-BOOL CfgMixFreq = 44100;
 HWND hStatus;
 HWND hSongName;
 HWND hTrackerType;
@@ -80,6 +77,21 @@ HBRUSH hBrushGreen;
 HBRUSH hBrushYellow;
 HBRUSH hBrushRed;
 HFONT s_hFont;
+
+/* Config */
+BOOL CfgEmpty = 1;
+BOOL CfgAveWidth = 0;
+BOOL CfgMode_Interp=1;
+BOOL CfgMode_Reverse=0;
+BOOL CfgMode_Surround=1;
+BOOL CfgMode_16bits=1;
+BOOL CfgMode_Hqmixer=1;
+BOOL CfgMode_Soft_music=1;
+BOOL CfgMode_Soft_sndfx=1;
+BOOL CfgMode_Stereo=1;
+BOOL CfgMode_Float=0;
+INT CfgMixFreq = 44100;
+
 int TimeCount = 0;
 int FontX, FontY;
 int PlayListPos = -1;
@@ -158,8 +170,29 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
   CfgMixFreq = GetPrivateProfileInt("W3MikMod", "mixfreq", 44100, ".\\w3mikmod.ini");
   s_hFont = CreateFont(CfgFontSize, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, CfgFont);
 
+  /* now getting md_mode params */
+  CfgMode_Interp=GetPrivateProfileInt("W3MikMod", "dmode_interp", 1, ".\\w3mikmod.ini");
+  CfgMode_Reverse=GetPrivateProfileInt("W3MikMod", "dmode_reverse", 0, ".\\w3mikmod.ini");
+  CfgMode_Surround=GetPrivateProfileInt("W3MikMod", "dmode_surround", 1, ".\\w3mikmod.ini");
+  CfgMode_16bits=GetPrivateProfileInt("W3MikMod", "dmode_16_bits", 1, ".\\w3mikmod.ini");
+  CfgMode_Hqmixer=GetPrivateProfileInt("W3MikMod", "dmode_hqmixer", 1, ".\\w3mikmod.ini");
+  CfgMode_Soft_music=GetPrivateProfileInt("W3MikMod", "dmode_soft_music", 1, ".\\w3mikmod.ini");
+  CfgMode_Soft_sndfx=GetPrivateProfileInt("W3MikMod", "dmode_soft_sndfx", 1, ".\\w3mikmod.ini");
+  CfgMode_Stereo=GetPrivateProfileInt("W3MikMod", "dmode_stereo", 1, ".\\w3mikmod.ini");
+  CfgMode_Float=GetPrivateProfileInt("W3MikMod", "dmode_float", 0, ".\\w3mikmod.ini");
+
+  /* Converting them to md_mode */
+  md_mode=0;
+  CfgMode_Interp ? md_mode |= DMODE_INTERP : md_mode;
+  CfgMode_Reverse ? md_mode |= DMODE_REVERSE : md_mode;
+  CfgMode_Surround ? md_mode |= DMODE_SURROUND : md_mode;
+  CfgMode_16bits ? md_mode |= DMODE_16BITS : md_mode;
+  CfgMode_Hqmixer ? md_mode |= DMODE_HQMIXER : md_mode;
+  CfgMode_Soft_music ? md_mode |= DMODE_SOFT_MUSIC : md_mode;
+  CfgMode_Soft_sndfx ? md_mode |= DMODE_SOFT_SNDFX : md_mode;
+  CfgMode_Stereo ? md_mode |= DMODE_STEREO : md_mode;
+  CfgMode_Float ? md_mode |= DMODE_FLOAT : md_mode;
   md_mixfreq = CfgMixFreq;
-  md_mode |= DMODE_INTERP | DMODE_SURROUND | DMODE_HQMIXER | DMODE_16BITS;
 
   MikMod_RegisterAllDrivers();
   MikMod_RegisterAllLoaders();
@@ -356,18 +389,18 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
       FontY=tm.tmHeight;
       SamplesInitSize=GetSystemMetrics(SM_CXSIZEFRAME)+GetSystemMetrics(SM_CYCAPTION)+GetSystemMetrics(SM_CYBORDER)+FontY;
 
-      hSamplesWin=CreateWindowEx(0, "w3mikmod_samples", "W3MikMod - Samples", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
-        CW_USEDEFAULT, CW_USEDEFAULT, 320, SamplesInitSize,
+      hSamplesWin=CreateWindowEx(0, "w3mikmod_samples", "Samples", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
+        CW_USEDEFAULT, CW_USEDEFAULT, 160, SamplesInitSize,
         NULL, NULL, hIns, NULL);
       SetWindowLong(hSamplesWin,0*sizeof(void*),(long)hBrushSamples);
 
-      hInstrWin=CreateWindowEx(0, "w3mikmod_instr", "W3MikMod - Instruments", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
-        CW_USEDEFAULT, CW_USEDEFAULT, 320, SamplesInitSize,
+      hInstrWin=CreateWindowEx(0, "w3mikmod_instr", "Instruments", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
+        CW_USEDEFAULT, CW_USEDEFAULT, 160, SamplesInitSize,
         NULL, NULL, hIns, NULL);
       SetWindowLong(hInstrWin,0*sizeof(void*),(long)hBrushInstr);
 
-      hVolWin=CreateWindowEx(0, "w3mikmod_vol", "W3MikMod - Volume", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
-        CW_USEDEFAULT, CW_USEDEFAULT, 320, SamplesInitSize,
+      hVolWin=CreateWindowEx(0, "w3mikmod_vol", "Volume", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
+        CW_USEDEFAULT, CW_USEDEFAULT, 160, SamplesInitSize,
         NULL, NULL, hIns, NULL);
       SetWindowLong(hVolWin,0*sizeof(void*),(long)hBrushVol);
 
@@ -570,9 +603,11 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
         InfoDriver = MikMod_InfoDriver();
 
         snprintf(&AboutMsg, 1024,
-          "W3Mikmod %s\r\n(c) 2021 Toyoyo\r\n\r\nLibMikmod %d.%d.%d\r\n(c) 2004 Raphael Assenat and others\r\n\r\n"
-          "Driver info:\r\n%s\r\n"
-          "Mix Frequency: %d\r\n\r\n"
+          "W3Mikmod %s\r\n(c) 2021-2022 Toyoyo\r\n\r\nLibMikmod %d.%d.%d\r\n(c) 1998-2022 Miodrag Vallat and others\r\n\r\n"
+          "Driver info:\r\n%s\r\n\r\n"
+          "Options:\r\n"
+          "Mix Frequency: %d\r\n"
+          "INTERP=%d\r\nREVERSE=%d\r\nSURROUND=%d\r\n16BITS=%d\r\nHQMIXER=%d\r\nSOFT_MUSIC=%d\r\nSOFT_SNDFX=%d\r\nSTEREO=%d\r\nFLOAT=%d\r\n\r\n"
           "Key usage:\r\n"
           "H: This help\r\n"
           "O: Open module\r\n"
@@ -589,7 +624,8 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
           "Space: Pause\r\n\r\n"
           "This program is free software,\r\ncovered by the GNU GPL.\r\n"
           , W3MIDMOKVERSION, (MikMod_GetVersion() >> 16) & 255, (MikMod_GetVersion() >>  8) & 255, (MikMod_GetVersion()) & 255,
-          InfoDriver, md_mixfreq);
+          InfoDriver, md_mixfreq, CfgMode_Interp, CfgMode_Reverse, CfgMode_Surround, CfgMode_16bits, CfgMode_Hqmixer,
+          CfgMode_Soft_music, CfgMode_Soft_sndfx, CfgMode_Stereo, CfgMode_Float);
 
           MikMod_free(InfoDriver);
 
@@ -858,9 +894,10 @@ void UpdateSamples(void) {
     int c = 0;
 
     for(t = 0; t < module->numsmp; t++) {
-      if (strlen(strchr(&SamplesMsg, '\0')) < 768)
-        if((!CfgEmpty && strncmp(module->samples[t].samplename, "", 255)) || CfgEmpty)
+      if (strlen(strchr(&SamplesMsg, '\0')) < 768) {
+        if((module->samples[t].samplename && strlen(module->samples[t].samplename) > 0) || CfgEmpty)
           snprintf(strchr(&SamplesMsg, '\0'), 255, "%02d: %s\n", t, module->samples[t].samplename);
+      }
     }
     if(!strlen(&SamplesMsg)) sprintf(&SamplesMsg, "No non-empty samples\r\n");
 
@@ -899,7 +936,7 @@ void UpdateInstr(void) {
     if(module->flags & UF_INST) {
       for(t = 0; t < module->numins ; t++) {
         if (strlen(strchr(&InstrMsg, '\0')) < 768) {
-          if((!CfgEmpty && strncmp(module->instruments[t].insname, "", 255)) || CfgEmpty)
+          if((module->instruments[t].insname && strlen(module->instruments[t].insname) > 0) || CfgEmpty)
             snprintf(strchr(&InstrMsg, '\0'), 255, "%02d: %s\n", t, module->instruments[t].insname);
         }
       }
