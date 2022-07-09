@@ -4,7 +4,7 @@ __        _______ __  __ _ _    __  __           _
   \ V  V /  ___) | |  | | |   <| |  | | (_) | (_| |
    \_/\_/  |____/|_|  |_|_|_|\_\_|  |_|\___/ \__,_|
 
-0.1.6 - ***
+0.1.6 - Sat 09 Jul 2022 11:20:11 PM CEST
   Sync libmikmod with git master
   Add md_mode configuration options
   Remove "w3mikmod -" in window titles
