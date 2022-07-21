@@ -94,8 +94,10 @@ BOOL CfgMode_Float=0;
 INT CfgMixFreq = 44100;
 
 time_t TimeStart;
+time_t PauseStart=0;
 int FontX, FontY;
 int PlayListPos = -1;
+BOOL Rewinded=0;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
   WNDCLASS wcMain;
@@ -505,6 +507,7 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
         if(module) {
           Player_SetPosition(0);
           time(&TimeStart);
+          Rewinded=1;
         }
       }
 
@@ -514,8 +517,11 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
         SendMessage(hToolbar, TB_CHECKBUTTON, (WPARAM)2003, (LPARAM)0);
         if(!isPlaying) {
           if(Player_Paused() && isStarted) {
+            time_t CurTime;
+            time(&CurTime);
             Player_TogglePause();
             isPlaying = 1;
+            TimeStart=TimeStart+(CurTime-PauseStart);
           } else {
             MikMod_EnableOutput();
             Player_SetPosition(0);
@@ -552,10 +558,18 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
           if(!Player_Paused()) Player_TogglePause();
           SendMessage(hToolbar, TB_CHECKBUTTON, (WPARAM)2003, (LPARAM)1);
           isPlaying = 1 - isPlaying;
+          time(&PauseStart);
         } else {
+          time_t CurTime;
+          time(&CurTime);
           if(Player_Paused()) Player_TogglePause();
           SendMessage(hToolbar, TB_CHECKBUTTON, (WPARAM)2003, (LPARAM)0);
           MikMod_Update();
+          if(Rewinded == 1) {
+            time(&TimeStart);
+          } else {
+            TimeStart=TimeStart+(CurTime-PauseStart);
+          }
           isPlaying = 1 - isPlaying;
         }
       }
