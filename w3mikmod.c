@@ -602,8 +602,8 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
       if(LOWORD(wParam) == 2006)
       {
         int PlayListCount=SendMessage(hPList, LB_GETCOUNT, 0, 0);
-
         if(PlayListCount > 0) {
+          Rewinded=0;
           PlayListPrev(PlayListCount, isPlaying);
         }
       }
@@ -613,6 +613,7 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
       {
         int PlayListCount=SendMessage(hPList, LB_GETCOUNT, 0, 0);
         if(PlayListCount > 0) {
+          Rewinded=0;
           PlayListNext(PlayListCount, isPlaying);
         }
       }
