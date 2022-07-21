@@ -25,8 +25,9 @@
 #include <commctrl.h>
 #include <winuser.h>
 #include <mikmod.h>
+#include <time.h>
 
-#define W3MIDMOKVERSION "0.1.6"
+#define W3MIDMOKVERSION "0.1.7"
 #define MOD_EXT "*.669;*.amf;*.dsm;*.far;*.gdm;*.it;*.imf;*.mod;*.med;*.mtm;*.okt;*.s3m;*.stm;*.stx;*.ult;*.umx;*.xm"
 #define NOMOD "-- No module loaded --"
 #define MAXVOICES 256
@@ -92,7 +93,7 @@ BOOL CfgMode_Stereo=1;
 BOOL CfgMode_Float=0;
 INT CfgMixFreq = 44100;
 
-int TimeCount = 0;
+time_t TimeStart;
 int FontX, FontY;
 int PlayListPos = -1;
 
@@ -503,7 +504,7 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
       {
         if(module) {
           Player_SetPosition(0);
-          TimeCount=0;
+          time(&TimeStart);
         }
       }
 
@@ -519,7 +520,7 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
             MikMod_EnableOutput();
             Player_SetPosition(0);
             Player_Start(module);
-            TimeCount=0;
+            time(&TimeStart);
             MikMod_Update();
             isPlaying = 1;
             isStarted = 1;
@@ -849,7 +850,6 @@ void CALLBACK Timer0Proc(HWND hWnd, unsigned int msg, unsigned int idTimer, DWOR
       MikMod_Update();
       UpdateStatus();
       UpdateVol(FALSE);
-      TimeCount++;
     } else {
       if(PlayListCount == 0 || PlayListCount == LB_ERR) {
         /* No Playlist, just looping */
@@ -884,7 +884,7 @@ void PlayListPrev(int PlayListCount, int isPlaying) {
 
 void UpdateSamples(void) {
   if(module && !IsIconic(hSamplesWin)) {
-    char SamplesMsg[1024] = {0};
+    char SamplesMsg[2048] = {0};
     char* SamplesMsgDisp;
     int Lines = 0;
     int MaxWidth = 0;
@@ -894,9 +894,11 @@ void UpdateSamples(void) {
     int c = 0;
 
     for(t = 0; t < module->numsmp; t++) {
-      if (strlen(strchr(&SamplesMsg, '\0')) < 768) {
+      if (strlen(&SamplesMsg) < 1792) {
         if((module->samples[t].samplename && strlen(module->samples[t].samplename) > 0) || CfgEmpty)
           snprintf(strchr(&SamplesMsg, '\0'), 255, "%02d: %s\n", t, module->samples[t].samplename);
+      } else {
+        snprintf(&SamplesMsg, 1, "");
       }
     }
     if(!strlen(&SamplesMsg)) sprintf(&SamplesMsg, "No non-empty samples\r\n");
@@ -924,7 +926,7 @@ void UpdateSamples(void) {
 
 void UpdateInstr(void) {
   if(module && !IsIconic(hInstrWin)) {
-    char InstrMsg[1024] = {0};
+    char InstrMsg[2048] = {0};
     char* InstrMsgDisp;
     int Lines = 0;
     int MaxWidth = 0;
@@ -935,9 +937,11 @@ void UpdateInstr(void) {
 
     if(module->flags & UF_INST) {
       for(t = 0; t < module->numins ; t++) {
-        if (strlen(strchr(&InstrMsg, '\0')) < 768) {
+        if (strlen(&InstrMsg) < 1792) {
           if((module->instruments[t].insname && strlen(module->instruments[t].insname) > 0) || CfgEmpty)
             snprintf(strchr(&InstrMsg, '\0'), 255, "%02d: %s\n", t, module->instruments[t].insname);
+        } else {
+           snprintf(&InstrMsg, 1, "");
         }
       }
     } else {
@@ -1051,7 +1055,7 @@ void ModuleLoad(char *ModFN, int Play) {
       Player_Start(module);
       MikMod_Update();
     }
-    TimeCount=0;
+    time(&TimeStart);
     SetWindowText(hSongName, module->songname);
     SetWindowText(hTrackerType, module->modtype);
     SetWindowText(hFileName, ModFN);
@@ -1063,11 +1067,13 @@ void UpdateStatus(void) {
   int PlayListCount=SendMessage(hPList, LB_GETCOUNT, 0, 0);
   char Status[255] = {0};
   char OldStatus[255];
+  time_t TimeCur;
 
+  time(&TimeCur);
   GetWindowText(hStatus, OldStatus, 255);
 
   snprintf(&Status, 255, "pat:%03d/%03d pos:%2.2X P:%d/%d time:%d",
-  module->sngpos, module->numpos-1, module->patpos, PlayListPos+1, PlayListCount, TimeCount/10);
+  module->sngpos, module->numpos-1, module->patpos, PlayListPos+1, PlayListCount, TimeCur-TimeStart);
 
   /* Only updating if changed, to reduce potential flickering */
   if(strncmp(&Status, &OldStatus, 255)) SetWindowText(hStatus, &Status);

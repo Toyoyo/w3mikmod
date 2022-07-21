@@ -4,8 +4,15 @@ __        _______ __  __ _ _    __  __           _
   \ V  V /  ___) | |  | | |   <| |  | | (_) | (_| |
    \_/\_/  |____/|_|  |_|_|_|\_\_|  |_|\___/ \__,_|
 
+
+0.1.7 - Thu 21 Jul 2022 07:45:29 PM CEST
+  Change status playtime routine to use timestamps instead of timer counter (this was a stupid idea)
+  Fix a buffer overlow in instruments/samples listing
+  While at it, increase their buffer size to 2K, some modules have a long list (lonely_heart.xm for example)
+
 0.1.6 - Sat 09 Jul 2022 11:20:11 PM CEST
   Sync libmikmod with git master
+  Fix bug with empty instruments/samples names with new libmikmod
   Add md_mode configuration options
   Remove "w3mikmod -" in window titles
   Shrink samples/instruments/volume windows initial size
