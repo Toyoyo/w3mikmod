@@ -516,6 +516,10 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
       {
         SendMessage(hToolbar, TB_CHECKBUTTON, (WPARAM)2003, (LPARAM)0);
         if(!isPlaying) {
+          if(Rewinded == 1) {
+            time(&TimeStart);
+            Rewinded=0;
+          }
           if(Player_Paused() && isStarted) {
             time_t CurTime;
             time(&CurTime);
@@ -549,6 +553,7 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
           Player_SetPosition(0);
           Player_Start(module);
           MikMod_Update();
+          time(&TimeStart);
           SendMessage(hToolbar, TB_CHECKBUTTON, (WPARAM)2003, (LPARAM)0);
           break;
         }
@@ -562,14 +567,16 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
         } else {
           time_t CurTime;
           time(&CurTime);
-          if(Player_Paused()) Player_TogglePause();
-          SendMessage(hToolbar, TB_CHECKBUTTON, (WPARAM)2003, (LPARAM)0);
-          MikMod_Update();
-          if(Rewinded == 1) {
-            time(&TimeStart);
-          } else {
+          if(Player_Paused()) {
+            Player_TogglePause();
             TimeStart=TimeStart+(CurTime-PauseStart);
           }
+          if(Rewinded == 1) {
+            time(&TimeStart);
+            Rewinded=0;
+          }
+          SendMessage(hToolbar, TB_CHECKBUTTON, (WPARAM)2003, (LPARAM)0);
+          MikMod_Update();
           isPlaying = 1 - isPlaying;
         }
       }
