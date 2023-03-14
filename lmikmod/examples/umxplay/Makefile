@@ -8,9 +8,9 @@ LIBMIKMOD_LIBS  =$(shell $(LIBMIKMOD_CONFIG) --libs)
 CFLAGS=-Wall -g $(LIBMIKMOD_CFLAGS)
 LDFLAGS=$(LIBMIKMOD_LIBS)
 
-PROG=splayMEM2
+PROG=umxplay
 
-OBJS=splayMEM2.o
+OBJS=umxload.o umxplay.o
 
 .PHONY : clean install
 
@@ -21,4 +21,4 @@ all: $(OBJS)
 	$(CC) $(CFLAGS) -c $<
 
 clean:
-	rm -f *.o $(PROG)
+	$(RM) *.o $(PROG)

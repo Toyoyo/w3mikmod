@@ -4,6 +4,11 @@ __        _______ __  __ _ _    __  __           _
   \ V  V /  ___) | |  | | |   <| |  | | (_) | (_| |
    \_/\_/  |____/|_|  |_|_|_|\_\_|  |_|\___/ \__,_|
 
+0.1.8 - Tue 14 Mar 2023 02:09:47 AM CET
+  Make the Open/Add module dialogs application modal.
+    Having two open at once and canceling one makes the VB4 runtime crash. Lovely platform we have here!
+  Sync libmikmod with git master
+  While we're at it, sync the resource file version
 
 0.1.7 - Thu 21 Jul 2022 07:45:29 PM CEST
   Change status playtime routine to use timestamps instead of timer counter (this was a stupid idea)

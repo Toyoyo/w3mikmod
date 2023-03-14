@@ -1,13 +1,59 @@
-/* simple app to run under valgrind for testing, etc... */
+/* sdlplay.c: A very basic example on how to use libmikmod to play
+ * a module using SDL to output audio: SDL2 or SDL-1.2 can be used.
+ *
+ * This file is in public domain.
+ */
+
+#include <stdio.h>
 #include <signal.h>
+#include "SDL.h"
 #include <mikmod.h>
+
+
+static void SDLCALL fill_audio(void *udata, Uint8 *stream, int len)
+{
+  (void) udata; /* not used. */
+  VC_WriteBytes((SBYTE *)stream, len);
+}
+
+static int sdl_init(void)
+{
+  SDL_AudioSpec spec;
+
+  if (SDL_Init(SDL_INIT_AUDIO) < 0) {
+    fprintf(stderr, "Can't initialize SDL: %s\n", SDL_GetError());
+    return -1;
+  }
+
+  spec.freq = 44100;
+  spec.format = AUDIO_S16;
+  spec.channels = 2;
+  spec.samples = 2048;
+  spec.callback = fill_audio;
+  spec.userdata = NULL;
+
+  if (SDL_OpenAudio(&spec, NULL) < 0) {
+    fprintf(stderr, "Can't initialize SDL audio: %s\n", SDL_GetError());
+    SDL_Quit();
+    return -1;
+  }
+
+  return 0;
+}
+
+static void sdl_deinit(void)
+{
+  SDL_CloseAudio();
+  SDL_Quit();
+}
 
 static int libmikmod_init(void)
 {
   /* initialize MikMod threads */
   MikMod_InitThreads ();
 
-  /* register only 'nosound' driver. */
+  /* register only 'nosound' driver: we
+   * will be using SDL for audio output. */
   MikMod_RegisterDriver(&drv_nos);
 
   /* register all the module loaders */
@@ -59,40 +105,46 @@ static void signals_deinit(void)
 int main(int argc, char **argv)
 {
   MODULE *module;
+  int i;
 
   if (argc < 2) {
-    fprintf(stderr, "Usage: ./splay file\n");
+    fprintf(stderr, "Usage: ./sdlplay file\n");
     return 1;
   }
 
+  if (sdl_init() < 0) {
+    return 1;
+  }
   if (libmikmod_init() < 0) {
+    sdl_deinit();
     return 1;
   }
   signals_init();
 
-  /* load module */
-  module = Player_Load(argv[1], 64, 0);
-  if (module) {
+  for (i = 1; !quit && i < argc; ++i) {
+    module = Player_Load(argv[i], 64, 0);
+    if (!module) {
+      fprintf(stderr, "Could not load %s: %s\n",
+              argv[i], MikMod_strerror(MikMod_errno));
+      continue;
+    }
     /* start module */
     printf("Playing %s (%d chn)\n", module->songname, (int) module->numchn);
-
-    module->loop = 0; /* disable in-module loops */
     Player_Start(module);
+    SDL_PauseAudio(0);
 
     while (!quit && Player_Active()) {
-    /* call update without usleep() or something: we only registered null driver */
-      MikMod_Update();
+      SDL_Delay(10);
     }
 
+    SDL_PauseAudio(1);
     Player_Stop();
     Player_Free(module);
   }
-  else
-    fprintf(stderr, "Could not load module, reason: %s\n",
-            MikMod_strerror(MikMod_errno));
 
   signals_deinit();
   libmikmod_deinit();
+  sdl_deinit();
 
   return 0;
 }

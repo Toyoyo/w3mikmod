@@ -27,7 +27,7 @@
 #include <mikmod.h>
 #include <time.h>
 
-#define W3MIDMOKVERSION "0.1.7"
+#define W3MIDMOKVERSION "0.1.8"
 #define MOD_EXT "*.669;*.amf;*.dsm;*.far;*.gdm;*.it;*.imf;*.mod;*.med;*.mtm;*.okt;*.s3m;*.stm;*.stx;*.ult;*.umx;*.xm"
 #define NOMOD "-- No module loaded --"
 #define MAXVOICES 256
@@ -484,7 +484,7 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
         int err = 0;
 
         ofn_mod.lStructSize = sizeof(OPENFILENAME);
-        ofn_mod.hwndOwner = NULL;
+        ofn_mod.hwndOwner = hWnd;
         ofn_mod.lpstrFile = FileName;
         ofn_mod.lpstrFile[0] = '\0';
         ofn_mod.nMaxFile = sizeof(FileName);
@@ -712,7 +712,7 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
         int err = 0;
 
         ofn_mod.lStructSize = sizeof(OPENFILENAME);
-        ofn_mod.hwndOwner = NULL;
+        ofn_mod.hwndOwner = hWnd;
         ofn_mod.lpstrFile = FileSelection;
         ofn_mod.lpstrFile[0] = '\0';
         ofn_mod.nMaxFile = sizeof(FileSelection);

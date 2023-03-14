@@ -43,8 +43,6 @@
 /* Define if your system provides POSIX.4 threads */
 #define HAVE_PTHREAD 1
 
-/* Define if your system has RTLD_GLOBAL defined in <dlfcn.h> */
-#define HAVE_RTLD_GLOBAL 1
 /* Define if your system needs leading underscore to function names in dlsym() calls */
 /* #undef DLSYM_NEEDS_UNDERSCORE */
 
@@ -56,9 +54,6 @@
 
 /* Define if you have the srandom function.  */
 #define HAVE_SRANDOM 1
-
-/* Define if you have the strstr function.  */
-#define HAVE_STRSTR 1
 
 /* Define if you have the <dlfcn.h> header file.  */
 #define HAVE_DLFCN_H 1
