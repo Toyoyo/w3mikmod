@@ -27,7 +27,7 @@
 #include <mikmod.h>
 #include <time.h>
 
-#define W3MIDMOKVERSION "0.1.8"
+#define W3MIDMOKVERSION "0.1.9"
 #define MOD_EXT "*.669;*.amf;*.dsm;*.far;*.gdm;*.it;*.imf;*.mod;*.med;*.mtm;*.okt;*.s3m;*.stm;*.stx;*.ult;*.umx;*.xm"
 #define NOMOD "-- No module loaded --"
 #define MAXVOICES 256
@@ -61,6 +61,7 @@ HWND hStatus;
 HWND hSongName;
 HWND hTrackerType;
 HWND hFileName;
+HWND hPadding;
 HWND hSamplesStatic;
 HWND hSamplesWin;
 HWND hInstrStatic;
@@ -91,6 +92,7 @@ BOOL CfgMode_Soft_music=1;
 BOOL CfgMode_Soft_sndfx=1;
 BOOL CfgMode_Stereo=1;
 BOOL CfgMode_Float=0;
+BOOL IsPLVisible=1;
 INT CfgMixFreq = 44100;
 
 time_t TimeStart;
@@ -183,6 +185,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
   CfgMode_Soft_sndfx=GetPrivateProfileInt("W3MikMod", "dmode_soft_sndfx", 1, ".\\w3mikmod.ini");
   CfgMode_Stereo=GetPrivateProfileInt("W3MikMod", "dmode_stereo", 1, ".\\w3mikmod.ini");
   CfgMode_Float=GetPrivateProfileInt("W3MikMod", "dmode_float", 0, ".\\w3mikmod.ini");
+  IsPLVisible=GetPrivateProfileInt("W3MikMod", "playlist", 1, ".\\w3mikmod.ini");
 
   /* Converting them to md_mode */
   md_mode=0;
@@ -278,6 +281,7 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
       HWND hPListAdd;
       HWND hPListDel;
       HWND hPListLoad;
+      HWND hPListToggle;
       int SamplesInitSize;
 
       /* Toolbar creation */
@@ -356,20 +360,26 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
       tbb[10].fsStyle = TBSTYLE_SEP;
       tbb[10].iBitmap = 6;
 
-      ClientResize(hWnd, 331, 161);
+      if(IsPLVisible == 1) {
+        ClientResize(hWnd, 331, 161);
+      } else {
+        ClientResize(hWnd, 331, 96);
+      }
       SendMessage(hToolbar, TB_ADDBUTTONS, sizeof(tbb)/sizeof(TBBUTTON), (LPARAM)&tbb);
       SendMessage(hToolbar, TB_AUTOSIZE, 0, 0);
 
       /* Our controls */
       hFileName = CreateWindowEx(0,"Static","-- FileName --",WS_CHILD|WS_VISIBLE,0,38,331,14,hWnd,(HMENU)3002,hIns,0);
       hSongName = CreateWindowEx(0,"Static","-- SongName --",WS_CHILD|WS_VISIBLE,0,52,331,14,hWnd,(HMENU)3001,hIns,0);
-      hTrackerType = CreateWindowEx(0,"Static","-- Tracker Name --",WS_CHILD|WS_VISIBLE,0,66,331,14,hWnd,(HMENU)3002,hIns,0);
-      CreateWindowEx(0,"Static","",WS_CHILD|WS_VISIBLE|SS_WHITERECT,309,97,22,100,hWnd,(HMENU)3004,hIns,0);
-      hStatus = CreateWindowEx(0,"Static","-- Status --", WS_CHILD|WS_VISIBLE,0,80,331,16,hWnd,(HMENU)3000,hIns,0);
+      hTrackerType = CreateWindowEx(0,"Static","-- Tracker Name --",WS_CHILD|WS_VISIBLE,0,66,308,14,hWnd,(HMENU)3002,hIns,0);
+      hPadding = CreateWindowEx(0,"Static","  ",WS_CHILD|WS_VISIBLE,308,66,331,14,hWnd,(HMENU)3002,hIns,0);
+      hStatus = CreateWindowEx(0,"Static","-- Status --", WS_CHILD|WS_VISIBLE,0,80,308,16,hWnd,(HMENU)3000,hIns,0);
+      CreateWindowEx(0,"Static","",WS_CHILD|WS_VISIBLE|SS_WHITERECT,309,74,22,110,hWnd,(HMENU)3004,hIns,0);
       hPList = CreateWindowEx(0,"Listbox","",WS_TABSTOP|WS_CHILD|WS_VISIBLE|LBS_HASSTRINGS|LBS_EXTENDEDSEL|LBS_NOINTEGRALHEIGHT|WS_VSCROLL,0,98,307,62,hWnd,(HMENU)3100,hIns,0);
       hPListAdd = CreateWindowEx(0,"Button","+",WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON|BS_VCENTER,310,98,20,20,hWnd,(HMENU)3101,hIns,0);
       hPListDel = CreateWindowEx(0,"Button","-",WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON|BS_VCENTER,310,119,20,20,hWnd,(HMENU)3102,hIns,0);
       hPListLoad = CreateWindowEx(0,"Button",">",WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON|BS_VCENTER,310,140,20,20,hWnd,(HMENU )3103,hIns,0);
+      hPListToggle = CreateWindowEx(0,"Button","\xB1",WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON|BS_VCENTER,310,75,20,20,hWnd,(HMENU )3104,hIns,0);
       DragAcceptFiles(hWnd, TRUE);
 
       SendMessage(hStatus, WM_SETFONT, (WPARAM)s_hFont, (LPARAM)MAKELONG(TRUE, 0));
@@ -429,6 +439,11 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
         return (long)hBrushNfo;
       }
       if((LPARAM)lParam == (LPARAM)hStatus) {
+        SetTextColor(hdcSTC, RGB(255,255,255));
+        SetBkColor(hdcSTC, RGB(0,0,205));
+        return (long)hBrushNfo;
+      }
+      if((LPARAM)lParam == (LPARAM)hPadding) {
         SetTextColor(hdcSTC, RGB(255,255,255));
         SetBkColor(hdcSTC, RGB(0,0,205));
         return (long)hBrushNfo;
@@ -654,6 +669,17 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
 
           MessageBox(NULL, AboutMsg, "W3MikMod - About", MB_OK|MB_ICONINFORMATION|MB_TASKMODAL);
           SetForegroundWindow(hWnd);
+      }
+
+      /* Playlist Toggle */
+      if(LOWORD(wParam) == 3104)
+      {
+        IsPLVisible = 1 - IsPLVisible;
+        if(IsPLVisible == 1) {
+          ClientResize(hWnd, 331, 161);
+        } else {
+          ClientResize(hWnd, 331, 96);
+        }
       }
 
       /* Playlist Load */
