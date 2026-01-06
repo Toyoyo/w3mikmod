@@ -23,13 +23,13 @@
 #
 # (This copyright notice applies only to this file)
 
+CMAKE_MINIMUM_REQUIRED(VERSION 3.1...3.10)
 PROJECT(libmikmod C)
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.12)
 LIST(APPEND CMAKE_MODULE_PATH "${libmikmod_SOURCE_DIR}/cmake")
 
 SET(LIBMIKMOD_MAJOR_VERSION 3)
 SET(LIBMIKMOD_MINOR_VERSION 3)
-SET(LIBMIKMOD_MICRO_VERSION 12)
+SET(LIBMIKMOD_MICRO_VERSION 13)
 
 SET(VERSION "${LIBMIKMOD_MAJOR_VERSION}.${LIBMIKMOD_MINOR_VERSION}.${LIBMIKMOD_MICRO_VERSION}")
 SET(LIBMIKMOD_VERSION "${LIBMIKMOD_MAJOR_VERSION}.${LIBMIKMOD_MINOR_VERSION}.${LIBMIKMOD_MICRO_VERSION}")
@@ -100,25 +100,35 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "HP-UX.*")
 set(SYS_HPUX 1)
 endif()
 
+if(SYS_OPENBSD)
+set(USE_SUNAUDIO_DEFAULT OFF)
+set(USE_SNDIO_DEFAULT  ON)
+set(USE_RPATH_DEFAULT  ON)
+else()
+set(USE_SUNAUDIO_DEFAULT  ON)
+set(USE_SNDIO_DEFAULT OFF)
+set(USE_RPATH_DEFAULT OFF)
+endif()
+
 include(CMakeDependentOption)
 
 cmake_dependent_option(ENABLE_ALSA "Include the ALSA driver" ON "SYS_LINUX" OFF)
 cmake_dependent_option(ENABLE_OSS "Include the OSS driver" ON "UNIX;NOT APPLE" OFF)
 cmake_dependent_option(ENABLE_ESD "Include the EsounD (Enlightened Sound Daemon) driver" OFF "UNIX;NOT APPLE" OFF)
 cmake_dependent_option(ENABLE_PULSE "Include the PulseAudio driver" ON "UNIX;NOT APPLE" OFF)
+cmake_dependent_option(ENABLE_SNDIO "Include the OpenBSD sndio driver" ${USE_SNDIO_DEFAULT} "UNIX;NOT APPLE" OFF)
 cmake_dependent_option(ENABLE_NAS "Include the Network Audio System driver" OFF "UNIX;NOT APPLE" OFF)
-cmake_dependent_option(ENABLE_AF "Include the DEC AudioFile server (AF) driver" OFF "UNIX;NOT APPLE" OFF)
+#cmake_dependent_option(ENABLE_AF "Include the DEC AudioFile server (AF) driver" OFF "UNIX;NOT APPLE" OFF)
 cmake_dependent_option(ENABLE_COREAUDIO "Include the CoreAudio driver" ON "APPLE" OFF)
 cmake_dependent_option(ENABLE_DSOUND "Include the DirectSound driver" ON "WIN32" OFF)
-cmake_dependent_option(ENABLE_MMSOUND "Include the Windows MCI driver" ON "WIN32" OFF)
+cmake_dependent_option(ENABLE_WINMM "Include the Windows MCI driver" ON "WIN32" OFF)
 cmake_dependent_option(ENABLE_XAUDIO2 "Include the XAudio2 driver" OFF "WIN32" OFF)
 cmake_dependent_option(ENABLE_XAUDIO28 "Use XAudio2.8 for Windows8 instead of XAudio2.7" OFF "WIN32" OFF)
 cmake_dependent_option(ENABLE_STDOUT "Support for output to stdout" ON "UNIX" OFF)
 cmake_dependent_option(ENABLE_PIPE "Support for output via a pipe to another command" ON "UNIX" OFF)
-cmake_dependent_option(ENABLE_SNDIO "Include the OpenBSD sndio driver" ON "SYS_OPENBSD" OFF)
 cmake_dependent_option(ENABLE_AIX "Include the AIX audio driver" ON "SYS_AIX" OFF)
 cmake_dependent_option(ENABLE_HPUX "Include the HP-UX audio driver" ON "SYS_HPUX" OFF)
-cmake_dependent_option(ENABLE_SUNAUDIO "Include the SunAudio (or compatibles) driver" ON "SYS_NETBSD OR SYS_OPENBSD OR SYS_SOLARIS" OFF)
+cmake_dependent_option(ENABLE_SUNAUDIO "Include the SunAudio (or compatibles) driver" ${USE_SUNAUDIO_DEFAULT} "SYS_NETBSD OR SYS_OPENBSD OR SYS_SOLARIS" OFF)
 option(ENABLE_OPENAL "Include the OpenAL driver" OFF)
 option(ENABLE_SDL "Include the SDL driver" OFF)
 option(ENABLE_AIFF "Support for output to an .aiff file" ON)
@@ -132,7 +142,7 @@ option(DISABLE_DEPACKERS "Exclude support for module depackers" OFF)
 option(DISABLE_HQMIXER "Exclude support for high quality mixer" OFF)
 
 option(ENABLE_SIMD "Use SIMD (AltiVec or SSE2) optimizations (UNSTABLE!!!)" OFF)
-option(ENABLE_RPATH "Whether to use an rpath when linking" ON)
+option(ENABLE_RPATH "Whether to use RPATH when linking" ${USE_RPATH_DEFAULT})
 option(ENABLE_SHARED "Whether to build the shared library" ON)
 option(ENABLE_STATIC "Whether to build the static library" ON)
 
@@ -140,8 +150,8 @@ IF (NOT ENABLE_STATIC AND NOT ENABLE_SHARED)
     message(FATAL_ERROR "Both static and shared builds got disabled. You must enable at least one of them.")
 ENDIF()
 
-### This is to set the RPATH correctly, so when installed
-### under a prefix the executables will find the libraries.
+include(GNUInstallDirs)
+
 ### See:  http://www.cmake.org/Wiki/CMake_RPATH_handling
 IF (ENABLE_RPATH)
   # use, i.e. don't skip the full RPATH for the build tree
@@ -152,7 +162,7 @@ IF (ENABLE_RPATH)
     SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 
   # the RPATH to be used when installing
-    SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}")
+    SET(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
 
   # add the automatically determined parts of the RPATH
   # which point to directories outside the build tree to the install RPATH
@@ -349,14 +359,20 @@ SET (MIKMOD_LIB_MODULES
     playercode/virtch_common.c
 )
 
-SET (LIBMIKMOD_LIBS)
+SET (LIBMIKMOD_TARGETS)
 
 IF (ENABLE_SHARED)
+    IF (MINGW)
+        SET(CMAKE_SHARED_LIBRARY_NAME_WITH_VERSION 1)
+    ENDIF()
+    IF (MSVC)
+        SET(CMAKE_SHARED_LIBRARY_PREFIX "lib")
+    ENDIF()
     ADD_LIBRARY (mikmod
         SHARED
         ${MIKMOD_LIB_MODULES}
     )
-    LIST (APPEND LIBMIKMOD_LIBS "mikmod")
+    LIST (APPEND LIBMIKMOD_TARGETS "mikmod")
 
     SET_TARGET_PROPERTIES(mikmod
         PROPERTIES VERSION 3.3.0 SOVERSION 3
@@ -366,6 +382,12 @@ IF (ENABLE_SHARED)
             PROPERTIES DEFINE_SYMBOL DLL_EXPORT
         )
     ENDIF()
+    IF(OS2)
+        TARGET_SOURCES(mikmod PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/os2/mikmod.def)
+        SET_TARGET_PROPERTIES(mikmod
+            PROPERTIES OUTPUT_NAME "mikmod3"
+        )
+    ENDIF()
 ENDIF()
 
 IF (ENABLE_STATIC)
@@ -373,14 +395,15 @@ IF (ENABLE_STATIC)
         STATIC
         ${MIKMOD_LIB_MODULES}
     )
-    LIST (APPEND LIBMIKMOD_LIBS "mikmod-static")
-
+    LIST (APPEND LIBMIKMOD_TARGETS "mikmod-static")
+    IF (NOT MSVC)
+        SET_TARGET_PROPERTIES(
+            mikmod-static
+            PROPERTIES OUTPUT_NAME "mikmod"
+        )
+    ENDIF()
     SET_TARGET_PROPERTIES(
-        mikmod-static
-        PROPERTIES OUTPUT_NAME "mikmod"
-    )
-    SET_TARGET_PROPERTIES(
-        ${LIBMIKMOD_LIBS}
+        ${LIBMIKMOD_TARGETS}
         PROPERTIES CLEAN_DIRECT_OUTPUT 1
     )
 ENDIF()
@@ -413,6 +436,7 @@ IF (ENABLE_DL)
   SET(MIKMOD_DYNAMIC 1)
 ENDIF()
 
+SET(LIBRARY_LIB )
 SET(EXTRA_LIBS )
 
 SET(HAVE_PTHREAD)
@@ -423,6 +447,7 @@ IF (NOT WIN32)
     SET (HAVE_PTHREAD 1)
     IF (CMAKE_THREAD_LIBS_INIT)
         LIST (APPEND EXTRA_LIBS ${CMAKE_THREAD_LIBS_INIT})
+        SET(LIBRARY_LIB "${LIBRARY_LIB} ${CMAKE_THREAD_LIBS_INIT}")
     ENDIF()
   ENDIF()
  ENDIF()
@@ -449,6 +474,7 @@ IF (ENABLE_PULSE)
     ENDIF()
     IF(ENABLE_PULSE AND NOT ENABLE_DL)
       LIST (APPEND EXTRA_LIBS ${PULSESIMPLE_LIBRARIES})
+      SET(LIBRARY_LIB "${LIBRARY_LIB} -lpulse-simple -lpulse")
     ENDIF()
 ENDIF()
 
@@ -471,6 +497,8 @@ IF (ENABLE_ESD)
             INCLUDE_DIRECTORIES(${ESD_INCLUDE_DIR})
             IF(NOT ENABLE_DL)
                LIST (APPEND EXTRA_LIBS ${ESD_LIBRARIES})
+               ## FIXME: -laudiofile is needed here, too??
+               SET(LIBRARY_LIB "${LIBRARY_LIB} -lesd")
             ENDIF()
         ENDIF()
     ENDIF()
@@ -493,28 +521,30 @@ IF (ENABLE_NAS)
     MESSAGE(STATUS "Found NAS: ${NAS_LIBRARIES}")
     SET(DRV_NAS 1)
     LIST (APPEND EXTRA_LIBS ${NAS_LIBRARIES})
+    SET(LIBRARY_LIB "${LIBRARY_LIB} -laudio")
   ENDIF()
 ENDIF()
 
-IF (ENABLE_AF)
-  CHECK_INCLUDE_FILE("AF/AFlib.h" HAVE_AF_AFLIB_H)
-  find_library(AF_LIBRARIES AF)
-  IF(AF_LIBRARIES)
-    SET(OLD_REQUIRED_LIBRARIES "${CMAKE_REQUIRED_LIBRARIES}")
-    SET(CMAKE_REQUIRED_LIBRARIES "AF")
-    CHECK_FUNCTION_EXISTS(AFOpenAudioConn AF_LIBS_OK)
-    SET(CMAKE_REQUIRED_LIBRARIES "${OLD_REQUIRED_LIBRARIES}")
-  ENDIF()
-  IF((NOT AF_LIBS_OK) OR (NOT HAVE_AF_AFLIB_H))
-    MESSAGE(STATUS "Could not find DEC AudioFile server.")
-    SET(ENABLE_AF 0)
-    MESSAGE(WARNING "DEC AudioFile server support is disabled.")
-  ELSE()
-    MESSAGE(STATUS "Found DEC AudioFile server: ${AF_LIBRARIES}")
-    SET(DRV_AF 1)
-    LIST (APPEND EXTRA_LIBS ${AF_LIBRARIES})
-  ENDIF()
-ENDIF()
+#IF (ENABLE_AF)
+#  CHECK_INCLUDE_FILE("AF/AFlib.h" HAVE_AF_AFLIB_H)
+#  find_library(AF_LIBRARIES AF)
+#  IF(AF_LIBRARIES)
+#    SET(OLD_REQUIRED_LIBRARIES "${CMAKE_REQUIRED_LIBRARIES}")
+#    SET(CMAKE_REQUIRED_LIBRARIES "AF")
+#    CHECK_FUNCTION_EXISTS(AFOpenAudioConn AF_LIBS_OK)
+#    SET(CMAKE_REQUIRED_LIBRARIES "${OLD_REQUIRED_LIBRARIES}")
+#  ENDIF()
+#  IF((NOT AF_LIBS_OK) OR (NOT HAVE_AF_AFLIB_H))
+#    MESSAGE(STATUS "Could not find DEC AudioFile server.")
+#    SET(ENABLE_AF 0)
+#    MESSAGE(WARNING "DEC AudioFile server support is disabled.")
+#  ELSE()
+#    MESSAGE(STATUS "Found DEC AudioFile server: ${AF_LIBRARIES}")
+#    SET(DRV_AF 1)
+#    LIST (APPEND EXTRA_LIBS ${AF_LIBRARIES})
+#    SET(LIBRARY_LIB "${LIBRARY_LIB} -lAF")
+#  ENDIF()
+#ENDIF()
 
 IF (ENABLE_OSS)
   CHECK_MULTI_INCLUDE_FILES("sys/soundcard.h" "machine/soundcard.h" "soundcard.h")
@@ -553,6 +583,7 @@ IF (ENABLE_OSS)
     SET (DRV_OSS 1)
     IF(OSSAUDIO_LIBRARIES)
       LIST(APPEND EXTRA_LIBS ${OSSAUDIO_LIBRARIES})
+      SET(LIBRARY_LIB "${LIBRARY_LIB} -lossaudio")
     ENDIF()
   ELSE()
     SET (ENABLE_OSS 0)
@@ -566,6 +597,7 @@ IF (ENABLE_ALSA)
     SET (DRV_ALSA 1)
     IF(NOT ENABLE_DL)
       LIST (APPEND EXTRA_LIBS ${ALSA_LIBRARIES})
+      SET(LIBRARY_LIB "${LIBRARY_LIB} -lasound")
     ENDIF()
   ELSE()
     SET (ENABLE_ALSA 0)
@@ -587,6 +619,8 @@ IF (ENABLE_SNDIO)
     MESSAGE(WARNING "OpenBSD sndio support is disabled.")
   ELSE()
     SET (DRV_SNDIO 1)
+    LIST (APPEND EXTRA_LIBS ${SNDIO_LIBRARIES})
+    SET(LIBRARY_LIB "${LIBRARY_LIB} -lsndio")
   ENDIF()
 ENDIF()
 
@@ -621,21 +655,17 @@ IF (ENABLE_HPUX)
 ENDIF()
 
 IF (ENABLE_COREAUDIO)
-    find_library(COREAUDIO_LIBS CoreAudio)
-    IF (NOT COREAUDIO_LIBS)
-        MESSAGE(STATUS "Could NOT find CoreAudio.")
-        SET (ENABLE_COREAUDIO 0)
-        MESSAGE(WARNING "CoreAudio driver support is disabled.")
-    ELSE()
-        MESSAGE(STATUS "Found CoreAudio libs: ${COREAUDIO_LIBS}")
-        SET (DRV_OSX 1)
-        LIST (APPEND EXTRA_LIBS ${COREAUDIO_LIBS})
-    ENDIF()
+    SET (DRV_OSX 1)
+    LIST (APPEND EXTRA_LIBS -Wl,-framework,AudioToolbox)
+    LIST (APPEND EXTRA_LIBS -Wl,-framework,AudioUnit)
+    LIST (APPEND EXTRA_LIBS -Wl,-framework,CoreServices)
+    SET(LIBRARY_LIB "${LIBRARY_LIB} -framework AudioToolbox -framework AudioUnit -framework CoreServices")
 ENDIF()
 
-IF (ENABLE_MMSOUND)
+IF (ENABLE_WINMM)
     SET (DRV_WIN 1)
     LIST (APPEND EXTRA_LIBS "winmm")
+    SET(LIBRARY_LIB "${LIBRARY_LIB} -lwinmm")
 ENDIF()
 
 IF (ENABLE_DSOUND)
@@ -643,6 +673,7 @@ IF (ENABLE_DSOUND)
     IF (HAVE_DSOUND_H)
       SET (DRV_DS 1)
       LIST (APPEND EXTRA_LIBS "dsound")
+      SET(LIBRARY_LIB "${LIBRARY_LIB} -ldsound")
     ELSE()
       SET (ENABLE_DSOUND 0)
       MESSAGE(WARNING "DirectSound support is disabled.")
@@ -665,10 +696,12 @@ IF (ENABLE_XAUDIO2)
       ENDIF()
       SET (DRV_XAUDIO2 1)
       LIST (APPEND EXTRA_LIBS "ole32")
+      SET(LIBRARY_LIB "${LIBRARY_LIB} -lole32")
       IF (ENABLE_XAUDIO28)
           ADD_DEFINITIONS("-D_WIN32_WINNT=0x0602")
           SET (DRV_XAUDIO28 1)
           LIST (APPEND EXTRA_LIBS "xaudio2_8")
+          SET(LIBRARY_LIB "${LIBRARY_LIB} -lxaudio2_8")
       ENDIF()
     ELSE()
       SET (ENABLE_XAUDIO2 0)
@@ -683,6 +716,8 @@ IF (ENABLE_SDL)
   IF (SDL_FOUND)
     SET (DRV_SDL 1)
     LIST (APPEND EXTRA_LIBS ${SDL_LIBRARY})
+    ## FIXME: SDL dependency libraries here??
+    SET(LIBRARY_LIB "${LIBRARY_LIB} -lSDL")
   ELSE()
     SET (ENABLE_SDL 0)
     MESSAGE(WARNING "SDL support is disabled.")
@@ -703,50 +738,58 @@ IF (ENABLE_OPENAL)
                                  int main() {return 0;}" HAVE_AL_ALEXT_H)
     ENDIF()
     LIST (APPEND EXTRA_LIBS ${OPENAL_LIBRARY})
+    IF(APPLE)
+      SET(LIBRARY_LIB "${LIBRARY_LIB} -framework OpenAL")
+    ELSE()
+      SET(LIBRARY_LIB "${LIBRARY_LIB} -lopenal")
+    ENDIF()
   ELSE()
     SET (ENABLE_OPENAL 0)
     MESSAGE(WARNING "OpenAL support is disabled.")
   ENDIF()
 ENDIF()
 
-IF (ENABLE_DL)
+IF (ENABLE_DL AND CMAKE_DL_LIBS)
   LIST (APPEND EXTRA_LIBS ${CMAKE_DL_LIBS})
+  SET(LIBRARY_LIB "${LIBRARY_LIB} -l${CMAKE_DL_LIBS}")
 ENDIF()
 
 CONFIGURE_FILE("${PROJECT_SOURCE_DIR}/config.h.cmake" "${PROJECT_BINARY_DIR}/config.h")
 
 SET(prefix ${CMAKE_INSTALL_PREFIX})
 SET(exec_prefix "\${prefix}")
-SET(libdir "\${exec_prefix}/lib${LIB_SUFFIX}")
-SET(includedir "\${prefix}/include")
+SET(includedir "${CMAKE_INSTALL_FULL_INCLUDEDIR}")
+SET(libdir "${CMAKE_INSTALL_FULL_LIBDIR}")
+STRING(STRIP "${LIBRARY_LIB}" LIBRARY_LIB)
 CONFIGURE_FILE("${PROJECT_SOURCE_DIR}/libmikmod-config.in" "${PROJECT_BINARY_DIR}/libmikmod-config" @ONLY)
 CONFIGURE_FILE("${PROJECT_SOURCE_DIR}/libmikmod.pc.in" "${PROJECT_BINARY_DIR}/libmikmod.pc" @ONLY)
 
-FOREACH (TGT ${LIBMIKMOD_LIBS})
+FOREACH (TGT ${LIBMIKMOD_TARGETS})
     TARGET_LINK_LIBRARIES ("${TGT}"
         ${EXTRA_LIBS})
     INCLUDE_DIRECTORIES(AFTER ${ALSA_INCLUDE_DIRS} ${OPENAL_INCLUDE_DIR} ${SDL_INCLUDE_DIR})
 ENDFOREACH (TGT)
 
 INSTALL(
-    TARGETS ${LIBMIKMOD_LIBS}
-    LIBRARY DESTINATION "lib${LIB_SUFFIX}"
-    ARCHIVE DESTINATION "lib${LIB_SUFFIX}"
+    TARGETS ${LIBMIKMOD_TARGETS}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 INSTALL(
     FILES "${PROJECT_BINARY_DIR}/libmikmod-config"
     PERMISSIONS GROUP_EXECUTE GROUP_READ OWNER_EXECUTE OWNER_READ OWNER_WRITE WORLD_EXECUTE WORLD_READ
-    DESTINATION "bin"
+    DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 INSTALL(
     FILES
         "${PROJECT_SOURCE_DIR}/include/mikmod.h"
     DESTINATION
-        "include"
+        ${CMAKE_INSTALL_INCLUDEDIR}
 )
 INSTALL(
     FILES
         "${PROJECT_BINARY_DIR}/libmikmod.pc"
     DESTINATION
-        "lib${LIB_SUFFIX}/pkgconfig"
+        ${CMAKE_INSTALL_LIBDIR}/pkgconfig
 )

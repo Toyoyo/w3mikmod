@@ -27,7 +27,7 @@
 #include <mikmod.h>
 #include <time.h>
 
-#define W3MIDMOKVERSION "0.1.9"
+#define W3MIDMOKVERSION "0.1.10"
 #define MOD_EXT "*.669;*.amf;*.dsm;*.far;*.gdm;*.it;*.imf;*.mod;*.med;*.mtm;*.okt;*.s3m;*.stm;*.stx;*.ult;*.umx;*.xm"
 #define NOMOD "-- No module loaded --"
 #define MAXVOICES 256
@@ -641,7 +641,7 @@ LRESULT CALLBACK fnWndProcMain(HWND hWnd, unsigned int msg, WPARAM wParam, LPARA
         InfoDriver = MikMod_InfoDriver();
 
         snprintf(&AboutMsg, 1024,
-          "W3Mikmod %s\r\n(c) 2021-2022 Toyoyo\r\n\r\nLibMikmod %d.%d.%d\r\n(c) 1998-2022 Miodrag Vallat and others\r\n\r\n"
+          "W3Mikmod %s\r\n(c) 2021-2026 Toyoyo\r\n\r\nLibMikmod %d.%d.%d\r\n(c) 1998-2025 Miodrag Vallat and others\r\n\r\n"
           "Driver info:\r\n%s\r\n\r\n"
           "Options:\r\n"
           "Mix Frequency: %d\r\n"

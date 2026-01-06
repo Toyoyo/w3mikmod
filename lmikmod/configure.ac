@@ -2,10 +2,10 @@ dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.63])
 
-AC_INIT([libmikmod],[3.3.12])
+AC_INIT([libmikmod],[3.3.13])
 LIBMIKMOD_MAJOR_VERSION=3
 LIBMIKMOD_MINOR_VERSION=3
-LIBMIKMOD_MICRO_VERSION=12
+LIBMIKMOD_MICRO_VERSION=13
 LIBMIKMOD_VERSION=$LIBMIKMOD_MAJOR_VERSION.$LIBMIKMOD_MINOR_VERSION.$LIBMIKMOD_MICRO_VERSION
 
 AC_CONFIG_AUX_DIR([autotools])
@@ -126,6 +126,7 @@ libmikmod_driver_osles=no
 libmikmod_dynload=yes
 libmikmod_dynload_underscores=no
 libmikmod_dynload_used=no
+libmikmod_dynload_style=none
 libmikmod_debug=no
 libmikmod_threads=yes
 libmikmod_simd=no
@@ -558,21 +559,20 @@ fi
 
 if test $libmikmod_dynload = yes
 then
-	libmikmod_dynload=no
 	libmikmod_dllib=
 	# SunOS-style shared libraries
 	AC_CHECK_HEADERS([dlfcn.h])
 	if test $ac_cv_header_dlfcn_h = yes
 	then
-		AC_CHECK_LIB([c],[dlopen],[libmikmod_dynload=sun],
-		             [AC_CHECK_LIB([dl],[dlopen],[libmikmod_dynload=sun
+		AC_CHECK_LIB([c],[dlopen],[libmikmod_dynload_style=sun],
+		             [AC_CHECK_LIB([dl],[dlopen],[libmikmod_dynload_style=sun
 		                                      libmikmod_dllib="-ldl"],[libmikmod_dynload=no])])
 	else
 		# HP-UX-style shared libraries
 		AC_CHECK_HEADERS([dl.h])
 		if test $ac_cv_header_dl_h = yes
 		then
-			AC_CHECK_LIB([dld],[shl_load],[libmikmod_dynload=hp
+			AC_CHECK_LIB([dld],[shl_load],[libmikmod_dynload_style=hp
 			                           libmikmod_dllib="-ldld"
 			                           CFLAGS="${CFLAGS} -DMIKMOD_DLAPI_HP=1 -I${srcdir}/dlapi"],
 			                          [libmikmod_dynload=no])
@@ -580,7 +580,7 @@ then
 	fi
 fi
 
-if test $libmikmod_dynload = sun
+if test $libmikmod_dynload_style = sun
 then
 	AC_CACHE_CHECK([wherever dynamically loaded symbols need underscores],[libmikmod_cv_dynload_underscores],
 		libmikmod_oldlibs=$LIBS
@@ -1045,10 +1045,9 @@ then
 	# dependencies to libmikmod's dependency list.
 	# However, no need to keep libraries we won't require (libossaudio on BSD
 	# systems, libaudiofile, libasound on Linux)
-	if test $libmikmod_dynload != no
+	if test $libmikmod_dynload = yes
 	then
 		ESD_LIBS="`echo $ESD_LIBS|sed -e 's/-lesd//'|sed -e 's/-lasound//'|sed -e 's/-laudiofile//'|sed -e 's/-lossaudio//'`"
-	else
 		libmikmod_dynload_used=yes
 	fi
 	LIBRARY_LIB="$ESD_LIBS $LIBRARY_LIB"
@@ -1133,7 +1132,7 @@ if test $libmikmod_driver_osx = yes
 then
 	libmikmod_driverlist="osx $libmikmod_driverlist"
 	AC_DEFINE([DRV_OSX], 1, [Define this if you want the MacOS X CoreAudio driver])
-	LIBRARY_LIB="-framework CoreAudio $LIBRARY_LIB"
+	LIBRARY_LIB="-framework AudioToolbox -framework AudioUnit -framework CoreServices $LIBRARY_LIB"
 fi
 
 #OpenSL ES driver (e.g. Android)
@@ -1340,6 +1339,11 @@ if test $libmikmod_cv_gcc_visibility = yes
 then
    CFLAGS="$CFLAGS -DSYM_VISIBILITY -fvisibility=hidden"
 fi
+# for os2, use our def file for exports:
+if test $libmikmod_os2 = yes
+then
+   LT_EXTRA="-Wl,$srcdir/os2/mikmod.def"
+fi
 
 # =================
 # Create Makefiles.
@@ -1356,6 +1360,7 @@ AC_SUBST(LIBMIKMOD_MINOR_VERSION)
 AC_SUBST(LIBMIKMOD_MICRO_VERSION)
 AC_SUBST(LIBMIKMOD_VERSION)
 
+AC_SUBST(LT_EXTRA)
 AC_SUBST(LIB_LDADD)
 
 AC_CONFIG_FILES([
@@ -1383,9 +1388,9 @@ chmod +x libmikmod-config
 # Print configuration.
 # ====================
 
-if test $libmikmod_dynload != no
+if test $libmikmod_dynload_used = yes
 then
-	libmikmod_dynload="yes, ${libmikmod_dynload} style"
+	libmikmod_dynload_used="yes, ${libmikmod_dynload_style} style"
 fi
 
 echo "
@@ -1396,7 +1401,7 @@ Library configuration:
   Compiler flags: $CFLAGS
   Debug version: $libmikmod_debug
   SIMD optimizations: $libmikmod_simd
-  Dynamically loaded drivers whenever possible: $libmikmod_dynload
+  Dynamically loading drivers when possible: $libmikmod_dynload_used
   Drivers to be compiled: $libmikmod_driverlist
   HQ Mixer: $libmikmod_hqmixer
   Install path: $prefix/lib, $prefix/include

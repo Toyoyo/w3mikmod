@@ -12,7 +12,7 @@ EXTRA_DIST = libmikmod-config.in libmikmod.m4 libmikmod.pc.in \
 	     libmikmod.spec.in libmikmod.spec COPYING.LESSER  \
 	     examples config.h.cmake CMakeLists.txt cmake     \
 	     amiga android macosx win32 dos os2 macintosh     \
-	     dc gp32 n64 psp
+	     dc gp32 n64 psp webaudio
 
 m4datadir = $(datadir)/aclocal
 m4data_DATA = libmikmod.m4
@@ -112,6 +112,6 @@ libmikmod_la_SOURCES = \
 		playercode/virtch2.c \
 		playercode/virtch_common.c
 
-libmikmod_la_LDFLAGS = -no-undefined -version-info @MIKMOD_LT_CURRENT@:@MIKMOD_LT_REVISION@:@MIKMOD_LT_AGE@
+libmikmod_la_LDFLAGS = -no-undefined -version-info @MIKMOD_LT_CURRENT@:@MIKMOD_LT_REVISION@:@MIKMOD_LT_AGE@ @LT_EXTRA@
 libmikmod_la_LIBADD = @LTLIBOBJS@ @LIBRARY_LIB@
 
