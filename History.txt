@@ -4,6 +4,10 @@ __        _______ __  __ _ _    __  __           _
   \ V  V /  ___) | |  | | |   <| |  | | (_) | (_| |
    \_/\_/  |____/|_|  |_|_|_|\_\_|  |_|\___/ \__,_|
 
+0.1.10 - Tue Jan  6 04:00:52 PM CET 2026
+  Update libmikmod
+  Update w3mikmod.ini documentation
+
 0.1.9 - Thu Oct 19 11:43:50 PM CEST 2023
   Add a toggle button to show/hide playlist
   Add a new configuration option for this
